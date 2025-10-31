@@ -26,6 +26,10 @@
 
 详细章节与大纲见 [docs/](docs/) 及 notebooks 目录。
 
+## 在线阅读
+
+推荐直接访问 [在线 Jupyter Book](https://daoming-chen.github.io/Motion-Planning-for-Manipulators/notebooks/00_intro.html) ，以“电子书”形式顺序阅读并运行章节示例。若希望进一步探索配套代码与交互式 Notebook，建议 `git clone` 本仓库在本地环境中体验。
+
 ## 快速开始
 
 1. **环境准备**  
