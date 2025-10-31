@@ -31,6 +31,13 @@ jobs:
         run: |
           jupyter-book build .
 
+      - name: Copy assets into build output
+        run: |
+          if [ -d assets ]; then
+            mkdir -p _build/html/assets
+            cp -R assets/. _build/html/assets/
+          fi
+
       - name: Deploy to GitHub Pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
