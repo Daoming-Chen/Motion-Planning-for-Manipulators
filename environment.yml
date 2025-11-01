@@ -1,0 +1,15 @@
+name: motion-planning-arm
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy
+  - matplotlib
+  - scipy
+  - ipython
+  - jupyter
+  - pip
+  - pip:
+      - tqdm
+      - networkx
+      - pybullet
