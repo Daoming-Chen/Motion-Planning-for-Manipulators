@@ -1,0 +1,25 @@
+project:
+  type: book
+  output-dir: _build/html
+
+book:
+  title: "Motion Planning for Manipulators"
+  author: "Daoming Chen"
+  repo-url: https://github.com/Daoming-Chen/Motion-Planning-for-Manipulators
+  repo-actions: [edit, issue]
+  chapters:
+    - index.ipynb
+    - notebooks/00_intro.ipynb
+    - notebooks/01_kinematics.ipynb
+    - notebooks/02_sampling_planners.ipynb
+    - notebooks/03_rrt_prm_advanced.ipynb
+    - notebooks/04_trajectory_optimization_intro.ipynb
+    - notebooks/05_trajopt_chomp_stomp.ipynb
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    number-sections: true
+    code-fold: false
+    code-tools: true

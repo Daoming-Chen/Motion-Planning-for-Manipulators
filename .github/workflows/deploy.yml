@@ -1,4 +1,4 @@
-name: Build and Deploy Jupyter Book
+name: Build and Deploy Quarto Book
 
 on:
   push:
@@ -22,14 +22,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           pip install -U pip
-          pip install jupyter-book ghp-import
+          pip install jupyter numpy matplotlib scipy plotly pandas
 
-      - name: Build the book
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.4.550
+
+      - name: Render Quarto book
         run: |
-          jupyter-book build .
+          quarto render
 
       - name: Copy assets into build output
         run: |
@@ -39,7 +44,8 @@ jobs:
           fi
 
       - name: Deploy to GitHub Pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ghp-import -n -p -f _build/html
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_build/html
+          force_orphan: true
