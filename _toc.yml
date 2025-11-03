@@ -1,9 +1,0 @@
-format: jb-book
-root: notebooks/cover
-chapters:
-  - file: notebooks/00_intro
-  - file: notebooks/01_kinematics
-  - file: notebooks/02_sampling_planners
-  - file: notebooks/03_rrt_prm_advanced
-  - file: notebooks/04_trajectory_optimization_intro
-  - file: notebooks/05_trajopt_chomp_stomp
