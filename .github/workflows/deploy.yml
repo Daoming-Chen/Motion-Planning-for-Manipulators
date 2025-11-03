@@ -3,7 +3,7 @@ name: Build and Deploy Quarto Book
 on:
   push:
     branches:
-      - fix/build_jupyter_book
+      - main
   workflow_dispatch:
 
 permissions:
