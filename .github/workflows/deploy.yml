@@ -3,7 +3,7 @@ name: Build and Deploy Jupyter Book
 on:
   push:
     branches:
-      - feat/add_cover
+      - main
   workflow_dispatch:
 
 permissions:
