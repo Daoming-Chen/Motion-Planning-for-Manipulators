@@ -14,3 +14,7 @@ html:
   use_repository_button: true
   use_edit_page_button: true
   use_issues_button: true
+exclude_patterns:
+  - "notebooks/assets/**"
+  - "**/.ipynb_checkpoints"
+  - "**/README.md"
