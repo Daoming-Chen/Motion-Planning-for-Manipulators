@@ -11,10 +11,17 @@ book:
     - index.ipynb
     - notebooks/00_intro.ipynb
     - notebooks/01_kinematics.ipynb
+    - test.ipynb
 format:
   html:
     theme: cosmo
     toc: true
     number-sections: true
-    code-fold: false
+    code-fold: true
     code-tools: true
+    embed-resources: true
+    # embed-resources bundles JS/CSS (including plotly.js and widget manager) into the HTML
+
+# Enable Jupyter widgets so ipywidgets/FigureWidget remain interactive after render
+jupyter:
+  widgets: true

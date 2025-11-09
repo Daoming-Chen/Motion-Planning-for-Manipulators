@@ -3,7 +3,7 @@ name: Build and Deploy Quarto Book
 on:
   push:
     branches:
-      - main
+      - feat/add_plotly
   workflow_dispatch:
 
 permissions:
