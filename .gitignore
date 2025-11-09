@@ -1,5 +1,6 @@
 # MyST build outputs
 _build
+site_libs 
 
 /.quarto/
 **/*.quarto_ipynb

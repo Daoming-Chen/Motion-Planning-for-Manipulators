@@ -17,11 +17,5 @@ format:
     theme: cosmo
     toc: true
     number-sections: true
-    code-fold: true
+    code-fold: false
     code-tools: true
-    embed-resources: true
-    # embed-resources bundles JS/CSS (including plotly.js and widget manager) into the HTML
-
-# Enable Jupyter widgets so ipywidgets/FigureWidget remain interactive after render
-jupyter:
-  widgets: true
