@@ -17,6 +17,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Node.js dependencies
+        run: |
+          npm install
+
+      - name: Build web demos with Vite
+        run: |
+          npm run build
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -36,11 +49,19 @@ jobs:
         run: |
           quarto render
 
-      - name: Copy assets into build output
+      - name: Copy assets and web demos into build output
         run: |
           if [ -d notebooks/assets ]; then
             mkdir -p _build/html/assets
             cp -R notebooks/assets/. _build/html/assets/
+          fi
+          if [ -d dist/web_demos ]; then
+            mkdir -p _build/html/web_demos
+            cp -R dist/web_demos/. _build/html/web_demos/
+          fi
+          if [ -d models ]; then
+            mkdir -p _build/html/models
+            cp -R models/. _build/html/models/
           fi
 
       - name: Deploy to GitHub Pages

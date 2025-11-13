@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+        <meta charset="utf-8"/>
+
+        <title>URDF Viewer Example</title>
+
+        <script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.4.3/webcomponents-bundle.js"></script>
+        <link href="https://fonts.googleapis.com/css?family=Roboto:100,300" rel="stylesheet"/>
+        <link href="styles.css" type="text/css" rel="stylesheet" />
+    </head>
+    <body tabindex="0">
+
+        <div id="menu">
+            <ul id="urdf-options">
+                <li urdf="../../../models/ur5_urdf/ur5e.urdf" color="#4CAF50">UR5e Robot</li>
+            </ul>
+
+            <div id="controls">
+                <!-- Toggle controls hidden but elements kept for JS functionality -->
+                <div id="toggle-controls" style="display:none;"></div>
+                <div id="ignore-joint-limits" class="toggle" style="display:none;">Ignore Joint Limits</div>
+                <div id="hide-fixed" class="toggle checked" style="display:none;">Hide Fixed Joints</div>
+                <div id="radians-toggle" class="toggle" style="display:none;">Use Radians</div>
+                <div id="autocenter-toggle" class="toggle checked" style="display:none;">Autocenter</div>
+                <div id="collision-toggle" class="toggle" style="display:none;">Show Collision</div>
+                <div id="do-animate" class="toggle checked" style="display:none;">Animate Joints</div>
+                <select id="up-select" style="display:none;">
+                    <option value="+Z" selected>+Z</option>
+                </select>
+                <ul></ul>
+            </div>
+        </div>
+        <urdf-viewer up="+Z" display-shadow tabindex="0"></urdf-viewer>
+
+        <script type="module" src="index.js"></script>
+    </body>
+</html>

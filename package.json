@@ -1,0 +1,20 @@
+{
+  "name": "motion-planning-for-manipulators",
+  "version": "1.0.0",
+  "description": "A collection of web demos for motion planning algorithms applied to robotic manipulators.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:all": "npm run build && quarto render && npm run copy:demos",
+    "copy:demos": "node scripts/copy-build.js"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "urdf-loader": "^0.12.3"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
