@@ -13,7 +13,10 @@ export function computeJacobian(robot, jointNames) {
 
     // 获取末端执行器的世界位置和姿态
     const endEffector = getEndEffector(robot);
-    if (!endEffector) return jacobian;
+    if (!endEffector) {
+        console.warn('[computeJacobian] ⚠️ 未找到末端执行器');
+        return jacobian;
+    }
 
     const eePosition = new THREE.Vector3();
     endEffector.getWorldPosition(eePosition);
@@ -177,17 +180,87 @@ function matrixVectorMultiply(matrix, vector) {
 }
 
 /**
- * 计算伪逆矩阵 (使用转置方法的简化版本)
- * J^+ = J^T (J J^T + λI)^-1
+ * 计算伪逆矩阵 (使用阻尼最小二乘法 - Damped Least Squares)
+ * J^+ = J^T (J J^T + λ^2 I)^-1
+ * @param {Array} J - 雅可比矩阵
+ * @param {number} lambda - 阻尼因子
+ * @returns {Array} 伪逆矩阵
  */
 function pseudoInverse(J, lambda = 0.01) {
     const JT = transpose(J);
-    const n = J[0].length; // 关节数
+    const m = J.length;    // 任务空间维度 (6)
+    const n = J[0].length; // 关节空间维度
 
-    // 使用转置作为近似伪逆（阻尼最小二乘法）
-    // dq = α * J^T * e
-    // 这里我们返回 J^T，在外部乘以步长因子
-    return JT;
+    // 计算 J * J^T
+    const JJT = matrixMultiply(J, JT);
+
+    // 添加阻尼项: J * J^T + λ^2 * I
+    for (let i = 0; i < m; i++) {
+        JJT[i][i] += lambda * lambda;
+    }
+
+    // 使用高斯消元法求解 (J * J^T + λ^2 * I)^-1
+    const JJT_inv = invertMatrix(JJT);
+
+    // 计算 J^+ = J^T * (J * J^T + λ^2 * I)^-1
+    const J_pseudo = matrixMultiply(JT, JJT_inv);
+
+    return J_pseudo;
+}
+
+/**
+ * 矩阵求逆 (使用高斯-约旦消元法)
+ * @param {Array} matrix - 方阵
+ * @returns {Array} 逆矩阵
+ */
+function invertMatrix(matrix) {
+    const n = matrix.length;
+    const augmented = matrix.map((row, i) => {
+        const identityRow = Array(n).fill(0);
+        identityRow[i] = 1;
+        return [...row, ...identityRow];
+    });
+
+    // 前向消元
+    for (let i = 0; i < n; i++) {
+        // 寻找主元
+        let maxRow = i;
+        for (let k = i + 1; k < n; k++) {
+            if (Math.abs(augmented[k][i]) > Math.abs(augmented[maxRow][i])) {
+                maxRow = k;
+            }
+        }
+
+        // 交换行
+        [augmented[i], augmented[maxRow]] = [augmented[maxRow], augmented[i]];
+
+        // 归一化当前行
+        const pivot = augmented[i][i];
+        if (Math.abs(pivot) < 1e-10) {
+            // 矩阵奇异，返回单位矩阵的倍数作为近似
+            console.warn('[invertMatrix] 矩阵接近奇异，使用近似值');
+            return Array(n).fill(0).map((_, i) =>
+                Array(n).fill(0).map((_, j) => i === j ? 1 : 0)
+            );
+        }
+
+        for (let j = 0; j < 2 * n; j++) {
+            augmented[i][j] /= pivot;
+        }
+
+        // 消元
+        for (let k = 0; k < n; k++) {
+            if (k !== i) {
+                const factor = augmented[k][i];
+                for (let j = 0; j < 2 * n; j++) {
+                    augmented[k][j] -= factor * augmented[i][j];
+                }
+            }
+        }
+    }
+
+    // 提取逆矩阵
+    return augmented.map(row => row.slice(n));
 }
 
 /**
@@ -197,27 +270,46 @@ function pseudoInverse(J, lambda = 0.01) {
  * @param {Array} targetPosition - 目标位置 [x, y, z]
  * @param {Array} targetOrientation - 目标姿态欧拉角 [rx, ry, rz] (弧度)
  * @param {Object} options - 配置选项
+ * @param {HTMLElement} viewer - URDF viewer元素（用于更新可视化）
+ * @param {Array} referenceAngles - 参考关节角度（起始点），如果未提供则使用机器人当前角度
  * @returns {Object} {success: bool, jointAngles: Array, error: number, iterations: number}
  */
-export function solveIK(robot, jointNames, targetPosition, targetOrientation, options = {}) {
+export function solveIK(robot, jointNames, targetPosition, targetOrientation, options = {}, viewer = null, referenceAngles = null) {
+    console.log('[solveIK] 开始求解');
+    console.log('[solveIK] 关节名称:', jointNames);
+    console.log('[solveIK] 目标位置:', targetPosition);
+    console.log('[solveIK] 目标姿态:', targetOrientation);
+
     const {
         maxIterations = 100,
         positionTolerance = 0.001,  // 1mm
         orientationTolerance = 0.01, // ~0.57度
         stepSize = 0.5,
         positionWeight = 1.0,
-        orientationWeight = 0.3
+        orientationWeight = 0.3,
+        dampingFactor = 0.05  // 阻尼因子
     } = options;
 
     let iteration = 0;
     let error = Infinity;
+    let prevError = Infinity;
 
-    // 获取当前关节角度
-    const currentAngles = jointNames.map(name => robot.joints[name].angle);
+    // 获取当前关节角度 - 使用提供的参考角度或机器人当前角度
+    const currentAngles = referenceAngles
+        ? referenceAngles.slice()  // 复制参考角度
+        : jointNames.map(name => robot.joints[name].angle);  // 从机器人获取当前角度
+    console.log('[solveIK] 初始关节角度 (reference):', currentAngles.map(a => (a * 180 / Math.PI).toFixed(1) + '°'));
+
+    // 自适应步长
+    let adaptiveStepSize = stepSize;
 
     while (iteration < maxIterations) {
         // 1. 计算当前末端执行器位姿
         const currentPose = getEndEffectorPose(robot);
+
+        if (iteration === 0 || iteration % 10 === 0) {
+            console.log(`[solveIK] 迭代 ${iteration}: 当前位姿`, currentPose);
+        }
 
         // 2. 计算位姿误差
         const posError = [
@@ -250,7 +342,12 @@ export function solveIK(robot, jointNames, targetPosition, targetOrientation, op
         const posErrorNorm = Math.sqrt(posError.reduce((sum, e) => sum + e * e, 0));
         const oriErrorNorm = Math.sqrt(oriError.reduce((sum, e) => sum + e * e, 0));
 
+        if (iteration === 0 || iteration % 10 === 0) {
+            console.log(`[solveIK] 迭代 ${iteration}: 位置误差 ${posErrorNorm.toFixed(4)}, 姿态误差 ${oriErrorNorm.toFixed(4)}`);
+        }
+
         if (posErrorNorm < positionTolerance && oriErrorNorm < orientationTolerance) {
+            console.log(`[solveIK] ✅ 收敛! 迭代次数: ${iteration}, 最终误差: ${error.toFixed(6)}`);
             return {
                 success: true,
                 jointAngles: currentAngles.slice(),
@@ -264,15 +361,29 @@ export function solveIK(robot, jointNames, targetPosition, targetOrientation, op
         // 4. 计算雅可比矩阵
         const J = computeJacobian(robot, jointNames);
 
-        // 5. 计算伪逆
-        const JT = pseudoInverse(J);
+        // 5. 计算伪逆（使用阻尼最小二乘法）
+        const J_pseudo = pseudoInverse(J, dampingFactor);
 
-        // 6. 计算关节角度变化 dq = α * J^T * e
-        const dq = matrixVectorMultiply(JT, fullError);
+        // 6. 计算关节角度变化 dq = α * J^+ * e
+        const dq = matrixVectorMultiply(J_pseudo, fullError);
+
+        // 自适应步长：如果误差增加，减小步长
+        if (error > prevError && iteration > 0) {
+            adaptiveStepSize *= 0.5;  // 减半步长
+            if (iteration % 10 === 0) {
+                console.log(`[solveIK] 误差增加，减小步长到 ${adaptiveStepSize.toFixed(3)}`);
+            }
+        } else if (error < prevError * 0.9) {
+            // 如果误差快速下降，可以适当增加步长
+            adaptiveStepSize = Math.min(stepSize, adaptiveStepSize * 1.1);
+        }
+
+        prevError = error;
 
         // 7. 更新关节角度
         for (let i = 0; i < jointNames.length; i++) {
-            currentAngles[i] += stepSize * dq[i];
+            const oldAngle = currentAngles[i];
+            currentAngles[i] += adaptiveStepSize * dq[i];
 
             // 限制关节范围
             const joint = robot.joints[jointNames[i]];
@@ -283,12 +394,23 @@ export function solveIK(robot, jointNames, targetPosition, targetOrientation, op
                 );
             }
 
-            // 应用到机器人
-            robot.joints[jointNames[i]].setJointValue(currentAngles[i]);
+            // 应用到机器人 - 通过viewer更新以确保Three.js可视化同步
+            if (viewer) {
+                viewer.setJointValue(jointNames[i], currentAngles[i]);
+            } else {
+                // 如果没有viewer，回退到直接设置（可能不会触发可视化更新）
+                robot.joints[jointNames[i]].setJointValue(currentAngles[i]);
+            }
+
+            if (iteration === 0 || iteration % 10 === 0) {
+                console.log(`[solveIK] 关节 ${jointNames[i]}: ${(oldAngle * 180 / Math.PI).toFixed(1)}° -> ${(currentAngles[i] * 180 / Math.PI).toFixed(1)}° (Δ=${((currentAngles[i] - oldAngle) * 180 / Math.PI).toFixed(1)}°)`);
+            }
         }
 
         iteration++;
     }
+
+    console.log(`[solveIK] ⚠️ 达到最大迭代次数 ${maxIterations}，未完全收敛`);
 
     // 达到最大迭代次数
     return {

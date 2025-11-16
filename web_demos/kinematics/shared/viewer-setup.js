@@ -1,6 +1,7 @@
 /* Viewer Setup - Shared Module */
 import URDFManipulator from 'urdf-loader/src/urdf-manipulator-element.js';
 import { createMeshLoader } from './urdf-loader.js';
+import * as THREE from 'three';
 
 /**
  * 初始化URDF Viewer
@@ -12,7 +13,9 @@ export function setupViewer(viewer, config = {}) {
         cameraPosition = [1, 1.2, 2.5],
         cameraLookAt = [1.5, -1, 0],
         robotPosition = [1, -1, 0],
-        noAutoRecenter = true
+        noAutoRecenter = true,
+        showWorldFrame = true,
+        worldFrameSize = 0.5
     } = config;
 
     // 设置自动居中
@@ -26,6 +29,11 @@ export function setupViewer(viewer, config = {}) {
         if (robotPosition) {
             viewer.robot.position.set(...robotPosition);
         }
+
+        // 添加世界坐标系
+        if (showWorldFrame) {
+            addWorldFrameToViewer(viewer, worldFrameSize);
+        }
     });
 
     // 设置相机位置
@@ -35,6 +43,28 @@ export function setupViewer(viewer, config = {}) {
     if (cameraLookAt) {
         viewer.camera.lookAt(...cameraLookAt);
     }
+}
+
+/**
+ * 添加世界坐标系到viewer场景
+ * @param {HTMLElement} viewer - URDF viewer元素
+ * @param {number} size - 坐标轴长度
+ */
+export function addWorldFrameToViewer(viewer, size = 0.5) {
+    // 检查是否已经添加过坐标系
+    if (viewer.scene.getObjectByName('worldFrame')) {
+        return;
+    }
+
+    // 创建坐标轴辅助器
+    // AxesHelper: X轴=红色, Y轴=绿色, Z轴=蓝色
+    const axesHelper = new THREE.AxesHelper(size);
+    axesHelper.name = 'worldFrame';
+    
+    // 将坐标系添加到场景中
+    viewer.scene.add(axesHelper);
+    
+    console.log(`✓ 世界坐标系已添加到场景 (尺寸: ${size}m)`);
 }
 
 /**

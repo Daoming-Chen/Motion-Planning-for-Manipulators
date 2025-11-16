@@ -97,10 +97,28 @@ viewer.addEventListener('manipulate-end', e => {
     viewer.noAutoRecenter = originalNoAutoRecenter;
 });
 
+// 初始关节值（度）
+const initialJointValues = {
+    'shoulder_pan_joint': 0,
+    'shoulder_lift_joint': -91.9,
+    'elbow_joint': 88.1,
+    'wrist_1_joint': -91.9,
+    'wrist_2_joint': -97.4,
+    'wrist_3_joint': 0
+};
+
 // Create joint sliders
 viewer.addEventListener('urdf-processed', () => {
     const r = viewer.robot;
     const joints = getSortedJoints(r);
+
+    // 设置初始关节值
+    Object.keys(initialJointValues).forEach(jointName => {
+        if (r.joints[jointName]) {
+            const valueInRadians = initialJointValues[jointName] * DEG2RAD;
+            setJointValue(viewer, jointName, valueInRadians);
+        }
+    });
 
     joints.forEach(joint => {
         const li = document.createElement('li');
@@ -176,7 +194,10 @@ viewer.addEventListener('urdf-processed', () => {
 
 // Initialize viewer and load URDF
 document.addEventListener('WebComponentsReady', () => {
-    setupViewer(viewer);
+    setupViewer(viewer, {
+        showWorldFrame: true,
+        worldFrameSize: 0.3  // 世界坐标系大小
+    });
 
     // Initialize URDF options
     initURDFOptions(viewer, () => {
