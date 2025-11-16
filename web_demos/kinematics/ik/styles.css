@@ -1,0 +1,206 @@
+/* IK-specific styles */
+/* Most styles are in shared/styles.css */
+
+#mode-info {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+#mode-info strong {
+    font-size: 14px;
+}
+
+#ee-controls h4 {
+    font-size: 12px;
+    font-weight: 300;
+    margin: 10px 0 5px 0;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#ee-controls h4:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+#position-sliders li,
+#orientation-sliders li {
+    font-size: 12px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 0;
+    gap: 8px;
+}
+
+#position-sliders li span.label,
+#orientation-sliders li span.label {
+    min-width: 30px;
+    font-weight: bold;
+}
+
+#position-sliders li input[type="range"],
+#orientation-sliders li input[type="range"] {
+    flex: 1;
+}
+
+#position-sliders li span.value,
+#orientation-sliders li span.value {
+    min-width: 60px;
+    text-align: right;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+/* IK Status Display */
+#ik-status-display {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#ik-status {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s;
+}
+
+#ik-status.error {
+    color: #ff6b6b;
+}
+
+#ik-status.success {
+    color: #51cf66;
+}
+
+#ik-error,
+#ik-iterations {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 3px 0;
+    font-family: monospace;
+}
+
+#joint-display {
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    padding-top: 10px;
+    overflow-x: hidden;
+}
+
+#joint-display h4 {
+    font-size: 12px;
+    font-weight: 300;
+    margin: 5px 0;
+}
+
+#joint-list {
+    overflow-x: hidden;
+}
+
+#joint-list li {
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 5px;
+    margin: 2px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+}
+
+#joint-list li span.joint-name {
+    font-weight: 300;
+    opacity: 0.8;
+}
+
+#joint-list li span.joint-value {
+    font-family: monospace;
+    font-weight: bold;
+}
+
+/* Speed control styles */
+#speed-control {
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    padding-top: 10px;
+    margin-top: 15px;
+}
+
+#speed-control h4 {
+    font-size: 12px;
+    font-weight: 300;
+    margin: 5px 0 10px 0;
+}
+
+.speed-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.speed-label {
+    font-size: 11px;
+    min-width: 30px;
+    text-align: center;
+}
+
+#speed-slider {
+    flex: 1;
+}
+
+.speed-value {
+    font-size: 11px;
+    text-align: center;
+    padding: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+#speed-value {
+    font-weight: bold;
+    font-family: monospace;
+}
+
+/* Slider button styles */
+.slider-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.slider-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.slider-btn:active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.95);
+}
+
+.slider-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Update slider list items to accommodate buttons */
+#position-sliders li,
+#orientation-sliders li {
+    gap: 5px;
+}
