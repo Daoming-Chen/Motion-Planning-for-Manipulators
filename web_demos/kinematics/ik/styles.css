@@ -49,9 +49,10 @@
 #position-sliders li span.value,
 #orientation-sliders li span.value {
     min-width: 60px;
-    text-align: right;
+    text-align: center;
     font-family: monospace;
     font-size: 11px;
+    flex: 1;
 }
 
 /* IK Status Display */

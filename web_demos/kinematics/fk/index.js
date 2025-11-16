@@ -195,6 +195,7 @@ viewer.addEventListener('urdf-processed', () => {
 // Initialize viewer and load URDF
 document.addEventListener('WebComponentsReady', () => {
     setupViewer(viewer, {
+        robotPosition: [0, 0, 0],  // 机器人位置与 world frame 对齐
         showWorldFrame: true,
         worldFrameSize: 0.3  // 世界坐标系大小
     });

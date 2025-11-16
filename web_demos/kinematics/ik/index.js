@@ -53,43 +53,35 @@ let animationFrameId = null;
 let positionSpeed = 0.2; // 位置速度：米/秒
 let orientationSpeed = 25; // 姿态速度：度/秒
 let activeIntervals = {}; // 存储活动的interval定时器
+let currentPositionValues = { x: 0, y: 0, z: 0 }; // 存储当前位置值
 
 /**
- * 创建位置控制滑块（带按钮）
+ * 创建位置控制（带按钮）
  */
 function createPositionSliders() {
     positionSlidersList.innerHTML = '';
 
     ['x', 'y', 'z'].forEach((axis, index) => {
         const limits = positionLimits[axis];
+        currentPositionValues[axis] = limits.default;
         const li = document.createElement('li');
         li.innerHTML = `
             <span class="label">${axis.toUpperCase()}:</span>
             <button class="slider-btn decrease" data-axis="${axis}" data-type="position">-</button>
-            <input type="range" 
-                   id="slider-${axis}" 
-                   min="${limits.min}" 
-                   max="${limits.max}" 
-                   step="0.01" 
-                   value="${limits.default}"
-                   disabled>
-            <button class="slider-btn increase" data-axis="${axis}" data-type="position">+</button>
             <span class="value" id="value-${axis}">${limits.default.toFixed(3)}m</span>
+            <button class="slider-btn increase" data-axis="${axis}" data-type="position">+</button>
         `;
         positionSlidersList.appendChild(li);
 
-        const slider = li.querySelector('input[type="range"]');
         const valueDisplay = li.querySelector('.value');
         const decreaseBtn = li.querySelector('.decrease');
         const increaseBtn = li.querySelector('.increase');
 
-        // 禁用直接拖动
-        slider.style.pointerEvents = 'none';
-
         // 按钮控制
-        setupButtonControl(decreaseBtn, increaseBtn, slider, valueDisplay,
+        setupButtonControl(decreaseBtn, increaseBtn, valueDisplay,
             (value) => {
                 targetPose.position[index] = value;
+                currentPositionValues[axis] = value;
                 valueDisplay.textContent = `${value.toFixed(3)}m`;
                 updateIK();
             },
@@ -101,13 +93,14 @@ function createPositionSliders() {
 /**
  * 设置按钮控制逻辑
  */
-function setupButtonControl(decreaseBtn, increaseBtn, slider, valueDisplay, onUpdate, min, max, step, speed) {
+function setupButtonControl(decreaseBtn, increaseBtn, valueDisplay, onUpdate, min, max, step, speed) {
     const axisKey = `${decreaseBtn.dataset.axis}-${decreaseBtn.dataset.type}`;
+    const axis = decreaseBtn.dataset.axis;
 
     // 减少按钮 - 鼠标事件
     decreaseBtn.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        startContinuousChange(axisKey, -1, slider, onUpdate, min, max, step, speed);
+        startContinuousChange(axisKey, -1, axis, onUpdate, min, max, step, speed);
     });
     decreaseBtn.addEventListener('mouseup', () => stopContinuousChange(axisKey));
     decreaseBtn.addEventListener('mouseleave', () => stopContinuousChange(axisKey));
@@ -115,7 +108,7 @@ function setupButtonControl(decreaseBtn, increaseBtn, slider, valueDisplay, onUp
     // 减少按钮 - 触摸事件（移动设备支持）
     decreaseBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        startContinuousChange(axisKey, -1, slider, onUpdate, min, max, step, speed);
+        startContinuousChange(axisKey, -1, axis, onUpdate, min, max, step, speed);
     });
     decreaseBtn.addEventListener('touchend', () => stopContinuousChange(axisKey));
     decreaseBtn.addEventListener('touchcancel', () => stopContinuousChange(axisKey));
@@ -123,7 +116,7 @@ function setupButtonControl(decreaseBtn, increaseBtn, slider, valueDisplay, onUp
     // 增加按钮 - 鼠标事件
     increaseBtn.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        startContinuousChange(axisKey, 1, slider, onUpdate, min, max, step, speed);
+        startContinuousChange(axisKey, 1, axis, onUpdate, min, max, step, speed);
     });
     increaseBtn.addEventListener('mouseup', () => stopContinuousChange(axisKey));
     increaseBtn.addEventListener('mouseleave', () => stopContinuousChange(axisKey));
@@ -131,7 +124,7 @@ function setupButtonControl(decreaseBtn, increaseBtn, slider, valueDisplay, onUp
     // 增加按钮 - 触摸事件（移动设备支持）
     increaseBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        startContinuousChange(axisKey, 1, slider, onUpdate, min, max, step, speed);
+        startContinuousChange(axisKey, 1, axis, onUpdate, min, max, step, speed);
     });
     increaseBtn.addEventListener('touchend', () => stopContinuousChange(axisKey));
     increaseBtn.addEventListener('touchcancel', () => stopContinuousChange(axisKey));
@@ -140,14 +133,14 @@ function setupButtonControl(decreaseBtn, increaseBtn, slider, valueDisplay, onUp
 /**
  * 开始连续改变值
  */
-function startContinuousChange(key, direction, slider, onUpdate, min, max, step, speed) {
+function startContinuousChange(key, direction, axis, onUpdate, min, max, step, speed) {
     // 如果已经有活动的interval，先清除
     if (activeIntervals[key]) {
         clearInterval(activeIntervals[key]);
     }
 
     // 立即执行一次
-    changeSliderValue(direction, slider, onUpdate, min, max, step);
+    changeValue(direction, axis, onUpdate, min, max, step);
 
     // 根据speed计算interval间隔（毫秒）
     // speed是单位/秒，我们需要计算每次改变step需要多少毫秒
@@ -155,7 +148,7 @@ function startContinuousChange(key, direction, slider, onUpdate, min, max, step,
 
     // 设置连续改变
     activeIntervals[key] = setInterval(() => {
-        changeSliderValue(direction, slider, onUpdate, min, max, step);
+        changeValue(direction, axis, onUpdate, min, max, step);
     }, intervalMs);
 }
 
@@ -170,10 +163,10 @@ function stopContinuousChange(key) {
 }
 
 /**
- * 改变slider的值
+ * 改变值
  */
-function changeSliderValue(direction, slider, onUpdate, min, max, step) {
-    let currentValue = parseFloat(slider.value);
+function changeValue(direction, axis, onUpdate, min, max, step) {
+    let currentValue = currentPositionValues[axis];
     let newValue = currentValue + (direction * step);
 
     // 限制在范围内
@@ -182,20 +175,19 @@ function changeSliderValue(direction, slider, onUpdate, min, max, step) {
     // 四舍五入到step精度
     newValue = Math.round(newValue / step) * step;
 
-    slider.value = newValue;
     onUpdate(newValue);
 }
 
 /**
  * 姿态按钮控制 - 增量式旋转
  */
-function setupOrientationButtonControl(decreaseBtn, increaseBtn, slider, valueDisplay, axis, axisIndex) {
+function setupOrientationButtonControl(decreaseBtn, increaseBtn, valueDisplay, axis, axisIndex) {
     const axisKey = `${axis}-orientation`;
 
     // 减少按钮 - 鼠标事件
     decreaseBtn.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        startIncrementalRotation(axisKey, -1, axis, axisIndex, slider, valueDisplay);
+        startIncrementalRotation(axisKey, -1, axis, axisIndex, valueDisplay);
     });
     decreaseBtn.addEventListener('mouseup', () => stopIncrementalRotation(axisKey));
     decreaseBtn.addEventListener('mouseleave', () => stopIncrementalRotation(axisKey));
@@ -203,7 +195,7 @@ function setupOrientationButtonControl(decreaseBtn, increaseBtn, slider, valueDi
     // 减少按钮 - 触摸事件
     decreaseBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        startIncrementalRotation(axisKey, -1, axis, axisIndex, slider, valueDisplay);
+        startIncrementalRotation(axisKey, -1, axis, axisIndex, valueDisplay);
     });
     decreaseBtn.addEventListener('touchend', () => stopIncrementalRotation(axisKey));
     decreaseBtn.addEventListener('touchcancel', () => stopIncrementalRotation(axisKey));
@@ -211,7 +203,7 @@ function setupOrientationButtonControl(decreaseBtn, increaseBtn, slider, valueDi
     // 增加按钮 - 鼠标事件
     increaseBtn.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        startIncrementalRotation(axisKey, 1, axis, axisIndex, slider, valueDisplay);
+        startIncrementalRotation(axisKey, 1, axis, axisIndex, valueDisplay);
     });
     increaseBtn.addEventListener('mouseup', () => stopIncrementalRotation(axisKey));
     increaseBtn.addEventListener('mouseleave', () => stopIncrementalRotation(axisKey));
@@ -219,7 +211,7 @@ function setupOrientationButtonControl(decreaseBtn, increaseBtn, slider, valueDi
     // 增加按钮 - 触摸事件
     increaseBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        startIncrementalRotation(axisKey, 1, axis, axisIndex, slider, valueDisplay);
+        startIncrementalRotation(axisKey, 1, axis, axisIndex, valueDisplay);
     });
     increaseBtn.addEventListener('touchend', () => stopIncrementalRotation(axisKey));
     increaseBtn.addEventListener('touchcancel', () => stopIncrementalRotation(axisKey));
@@ -228,21 +220,21 @@ function setupOrientationButtonControl(decreaseBtn, increaseBtn, slider, valueDi
 /**
  * 开始增量式旋转
  */
-function startIncrementalRotation(key, direction, axis, axisIndex, slider, valueDisplay) {
+function startIncrementalRotation(key, direction, axis, axisIndex, valueDisplay) {
     // 如果已经有活动的interval，先清除
     if (activeIntervals[key]) {
         clearInterval(activeIntervals[key]);
     }
 
     // 立即执行一次
-    applyIncrementalRotation(direction, axis, axisIndex, slider, valueDisplay);
+    applyIncrementalRotation(direction, axis, axisIndex, valueDisplay);
 
     // 计算interval间隔（orientationSpeed是度/秒，步长为1度）
     const intervalMs = (1 / orientationSpeed) * 1000;
 
     // 设置连续旋转
     activeIntervals[key] = setInterval(() => {
-        applyIncrementalRotation(direction, axis, axisIndex, slider, valueDisplay);
+        applyIncrementalRotation(direction, axis, axisIndex, valueDisplay);
     }, intervalMs);
 }
 
@@ -260,7 +252,7 @@ function stopIncrementalRotation(key) {
  * 应用增量式旋转 - 关键函数
  * 使用四元数在当前姿态基础上施加旋转增量
  */
-function applyIncrementalRotation(direction, axis, axisIndex, slider, valueDisplay) {
+function applyIncrementalRotation(direction, axis, axisIndex, valueDisplay) {
     if (!viewer.robot || !isInitialized) return;
 
     // 旋转增量（度）
@@ -276,7 +268,6 @@ function applyIncrementalRotation(direction, axis, axisIndex, slider, valueDispl
     cumulativeRotation[axis] = Math.max(limits.min, Math.min(limits.max, cumulativeRotation[axis]));
 
     // 更新UI显示
-    slider.value = cumulativeRotation[axis];
     valueDisplay.textContent = `${cumulativeRotation[axis].toFixed(0)}°`;
 
     // 创建旋转轴（世界坐标系）
@@ -300,7 +291,7 @@ function applyIncrementalRotation(direction, axis, axisIndex, slider, valueDispl
 }
 
 /**
- * 创建姿态控制滑块（带按钮） - 增量式控制
+ * 创建姿态控制（带按钮） - 增量式控制
  */
 function createOrientationSliders() {
     orientationSlidersList.innerHTML = '';
@@ -311,28 +302,17 @@ function createOrientationSliders() {
         li.innerHTML = `
             <span class="label">${axis.toUpperCase()}:</span>
             <button class="slider-btn decrease" data-axis="${axis}" data-type="orientation">-</button>
-            <input type="range" 
-                   id="slider-${axis}" 
-                   min="${limits.min}" 
-                   max="${limits.max}" 
-                   step="1" 
-                   value="${limits.default}"
-                   disabled>
-            <button class="slider-btn increase" data-axis="${axis}" data-type="orientation">+</button>
             <span class="value" id="value-${axis}">${limits.default}°</span>
+            <button class="slider-btn increase" data-axis="${axis}" data-type="orientation">+</button>
         `;
         orientationSlidersList.appendChild(li);
 
-        const slider = li.querySelector('input[type="range"]');
         const valueDisplay = li.querySelector('.value');
         const decreaseBtn = li.querySelector('.decrease');
         const increaseBtn = li.querySelector('.increase');
 
-        // 禁用直接拖动
-        slider.style.pointerEvents = 'none';
-
         // 按钮控制 - 增量式旋转
-        setupOrientationButtonControl(decreaseBtn, increaseBtn, slider, valueDisplay, axis, index);
+        setupOrientationButtonControl(decreaseBtn, increaseBtn, valueDisplay, axis, index);
     });
 }
 
@@ -487,23 +467,20 @@ function initializeFromCurrentPose() {
     cumulativeRotation.ry = 0;
     cumulativeRotation.rz = 0;
 
-    // 更新位置滑块
+    // 更新位置显示
     ['x', 'y', 'z'].forEach((axis, index) => {
-        const slider = document.getElementById(`slider-${axis}`);
         const valueDisplay = document.getElementById(`value-${axis}`);
-        if (slider && valueDisplay) {
+        if (valueDisplay) {
             const value = currentPose.position[index];
-            slider.value = value;
+            currentPositionValues[axis] = value;
             valueDisplay.textContent = `${value.toFixed(3)}m`;
         }
     });
 
-    // 更新姿态滑块（显示为0，因为是相对增量）
+    // 更新姿态显示（显示为0，因为是相对增量）
     ['rx', 'ry', 'rz'].forEach((axis) => {
-        const slider = document.getElementById(`slider-${axis}`);
         const valueDisplay = document.getElementById(`value-${axis}`);
-        if (slider && valueDisplay) {
-            slider.value = 0;
+        if (valueDisplay) {
             valueDisplay.textContent = '0°';
         }
     });
