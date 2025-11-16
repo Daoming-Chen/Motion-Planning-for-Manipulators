@@ -1,0 +1,105 @@
+/* IK-specific styles */
+/* Most styles are in shared/styles.css */
+
+#mode-info {
+    padding: 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+#mode-info strong {
+    font-size: 16px;
+}
+
+#ee-controls h4 {
+    font-size: 14px;
+    font-weight: 300;
+    margin: 10px 0 5px 0;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+#ee-controls h4:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+#position-sliders li,
+#orientation-sliders li {
+    font-size: 14px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 0;
+    gap: 8px;
+}
+
+#position-sliders li span.label,
+#orientation-sliders li span.label {
+    min-width: 30px;
+    font-weight: bold;
+}
+
+#position-sliders li input[type="range"],
+#orientation-sliders li input[type="range"] {
+    flex: 1;
+}
+
+#position-sliders li span.value,
+#orientation-sliders li span.value {
+    min-width: 60px;
+    text-align: right;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+#ik-status {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+#ik-status.error {
+    background: rgba(255,100,100,0.2);
+}
+
+#ik-status.success {
+    background: rgba(100,255,100,0.2);
+}
+
+#joint-display {
+    border-top: 1px solid rgba(255,255,255,0.3);
+    padding-top: 10px;
+}
+
+#joint-display h4 {
+    font-size: 14px;
+    font-weight: 300;
+    margin: 5px 0;
+}
+
+#joint-list li {
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 5px;
+    margin: 2px 0;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+}
+
+#joint-list li span.joint-name {
+    font-weight: 300;
+    opacity: 0.8;
+}
+
+#joint-list li span.joint-value {
+    font-family: monospace;
+    font-weight: bold;
+}
+

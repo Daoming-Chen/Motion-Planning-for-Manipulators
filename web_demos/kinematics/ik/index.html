@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta charset="utf-8" />
+
+    <title>IK Solver - End Effector Control</title>
+
+    <script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.4.3/webcomponents-bundle.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300" rel="stylesheet" />
+    <link href="../shared/styles.css" type="text/css" rel="stylesheet" />
+    <link href="styles.css" type="text/css" rel="stylesheet" />
+</head>
+
+<body tabindex="0">
+
+    <div id="menu">
+        <ul id="urdf-options">
+            <li urdf="../../../models/ur5_urdf/ur5e.urdf" color="#4CAF50">UR5e Robot</li>
+        </ul>
+
+        <div id="controls">
+            <div id="mode-info">
+                <strong>模式: 逆向运动学 (IK)</strong>
+                <p style="font-size: 12px; margin: 5px 0;">控制机器人末端位置和姿态</p>
+            </div>
+
+            <!-- End effector position controls -->
+            <div id="ee-controls">
+                <h4>末端位置 (Position)</h4>
+                <ul id="position-sliders"></ul>
+
+                <h4>末端姿态 (Orientation)</h4>
+                <ul id="orientation-sliders"></ul>
+            </div>
+
+            <!-- IK solver status -->
+            <div id="ik-status">
+                <span id="ik-error">误差: 0.000</span>
+                <span id="ik-iterations">迭代: 0</span>
+            </div>
+
+            <!-- Joint angles display (read-only) -->
+            <div id="joint-display" style="margin-top: 15px;">
+                <h4>关节角度 (只读)</h4>
+                <ul id="joint-list"></ul>
+            </div>
+        </div>
+    </div>
+    <urdf-viewer up="+Z" display-shadow tabindex="0"></urdf-viewer>
+
+    <script type="module" src="index.js"></script>
+</body>
+
+</html>
