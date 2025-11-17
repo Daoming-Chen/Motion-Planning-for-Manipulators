@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta charset="utf-8" />
+
+    <title>IK Solver - End Effector Control</title>
+
+    <script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.4.3/webcomponents-bundle.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300" rel="stylesheet" />
+  <script type="module" crossorigin src="../../../web_demos/kinematics/ik/ik.js"></script>
+  <link rel="modulepreload" crossorigin href="../../../web_demos/chunks/viewer-setup-zx6KrVDD.js">
+  <link rel="stylesheet" crossorigin href="../../../web_demos/viewer-setup/viewer-setup.css">
+  <link rel="stylesheet" crossorigin href="../../../web_demos/kinematics/ik/ik.css">
+</head>
+
+<body tabindex="0">
+
+    <div id="menu">
+        <ul id="urdf-options">
+            <li urdf="../../../models/ur5_urdf/ur5e.urdf" color="#4CAF50">UR5e Robot</li>
+        </ul>
+
+        <div id="controls">
+            <!-- End effector position controls -->
+            <div id="ee-controls">
+                <h4>末端位姿控制</h4>
+                <ul id="position-sliders"></ul>
+                <ul id="orientation-sliders"></ul>
+            </div>
+
+            <!-- Joint angles display (read-only)
+            <div id="joint-display" style="margin-top: 15px;">
+                <ul id="joint-list"></ul>
+            </div> -->
+
+            <!-- IK Status Display -->
+            <!-- <div id="ik-status-display"
+                style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px;">
+                <div id="ik-status" style="font-weight: bold; margin-bottom: 5px;">状态: 就绪</div>
+                <div id="ik-error" style="font-size: 12px;">误差: 0.000</div>
+                <div id="ik-iterations" style="font-size: 12px;">迭代: 0</div>
+            </div> -->
+
+        </div>
+    </div>
+    <urdf-viewer up="+Z" display-shadow tabindex="0"></urdf-viewer>
+
+</body>
+
+</html>

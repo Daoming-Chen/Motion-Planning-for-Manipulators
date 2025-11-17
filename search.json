@@ -1,0 +1,82 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Motion Planning for Manipulators",
+    "section": "",
+    "text": "1 Cover\n\n\n\n\n\nThis website contains the full text of the Motion Planning for Manipulators by Daoming Chen; the content is available on GitHub in the form of Jupyter notebooks.\nThe text is released under the CC BY-SA license, and code is released under the MIT license.\nTable of Contents\n\nIntro to Motion Planning for Manipulators\nKinematices",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Cover</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/00_intro.html",
+    "href": "notebooks/00_intro.html",
+    "title": "2  Introduction",
+    "section": "",
+    "text": "2.1 什么是运动规划？\n从根本上说，机械臂运动规划的核心问题是寻找一个有效且连续的配置序列（即路径或轨迹），该序列能够将机器人从一个起始状态移动到一个期望的目标状态，同时不违反任何约束条件，其中最关键的约束是避免与自身或环境中的障碍物发生碰撞 。这个基本问题可以进一步分解为两个子问题：路径规划（Path Planning）和轨迹规划（Trajectory Planning）。路径规划专注于寻找一条纯粹的几何路径，而轨迹规划则为这条路径赋予时间规律，即定义其速度和加速度曲线 。\n在现代机器人技术中自主规划运动的能力，是将机器人从一个简单的遥控设备转变为智能体的关键。这项能力是现代机器人技术的基石，它催生了众多深刻影响生产力和社会的应用 。尤其是操作 (Manipulation) 方面。\n工业自动化：在制造业中，运动规划对于焊接、复杂零件组装和码垛等精密任务至关重要。在这些结构化环境中，机器人必须执行精确且可重复的运动 。\n医疗健康：在医疗领域，机械臂辅助进行需要高度精确性的外科手术，帮助患者康复，并执行实验室自动化任务 。\n服务与协作机器人：随着机器人逐渐进入以人为中心的环境，挑战也随之加剧。协作机器人（Cobots）必须能够安全、可预测地在人类周围规划运动，并适应家庭、仓库和医院等动态、非结构化的环境 。",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/00_intro.html#什么是运动规划",
+    "href": "notebooks/00_intro.html#什么是运动规划",
+    "title": "2  Introduction",
+    "section": "",
+    "text": "Son D, Jung H, Kim B. NeuralSVCD for Efficient Swept Volume Collision Detection[J].  arXiv preprint arXiv:2509.00499, 2025.\n\n\n\n\n\n\n\n\n\n特斯拉上海工厂\n\n\n\n\n\n\n\n\n达芬奇手术机器人\n\n\n\n\n\n\n\n\nFigure 03 服务机器人",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/00_intro.html#什么是好的规划",
+    "href": "notebooks/00_intro.html#什么是好的规划",
+    "title": "2  Introduction",
+    "section": "2.2 什么是“好的”规划？",
+    "text": "2.2 什么是“好的”规划？\n运动规划研究的最初焦点仅仅是找到任何可行的解决方案，这一概念被称为“完备性”（Completeness）。比如最经典的 Dijkstra 算法\n\n\n然而，现代应用的要求远不止于此。一个“好”的规划需要通过多个标准来评估：\n\n可行性（Feasibility）：规划出的路径必须是无碰撞的，并且要遵守机器人的运动学和动力学约束 。\n\n最优性（Optimality）：规划应在给定成本函数下达到“最优”。这可能意味着最小化路径长度、执行时间或能耗 。\n\n平滑性与可预测性（Smoothness & Predictability）：为了安全可靠地执行，轨迹应该是平滑的（即具有较低的加加速度和加速度）。在工业和协作场景中，可预测性至关重要；相似的规划查询应该产生相似的路径 。\n\n\n\n\niDb-A* Optimal Trajectory Planning  de Haro J O, Hönig W, Hartmann V N, et al.  iDb-A*: Iterative search and optimization for optimal kinodynamic motion planning[J]. IEEE Trans. Robotics, 2025.\n\n\n这种从可行性到多目标最优性的演变，清晰地反映了机器人技术领域的成熟过程。\n早期的研究工作主要关注一个二元问题：“是否存在一条路径？”能够保证在路径存在时找到它的算法被称为“完备的”，但对于复杂机器人来说，这些算法的计算成本往往高得令人望而却步。这一计算瓶颈催生了基于采样的规划方法，它们牺牲了绝对的完备性，以换取概率完备性和实践中的高效率，但其初始解往往不平滑且非最优。\n这些初始解的质量不佳，反过来又催生了对“更好”路径的需求，从而引入了最优性的概念（例如最短路径），并推动了像 RRT* 这样的算法的发展。\n\n\n\nRRT -&gt; RRT*  Karaman S, Frazzoli E. Incremental sampling-based algorithms for optimal motion planning[J].  Robotics Science and Systems VI, 2010, 104(2): 267-274.\n\n\n随着机器人变得更加动态，并以更复杂的方式与世界互动，单一的路径长度度量已不再足够。电机扭矩、能量消耗以及流畅运动所需的平滑度等因素变得至关重要。这最终导致了轨迹优化框架（如 CHOMP、STOMP、TrajOpt）的兴起，这些框架通过定义丰富的、包含多个项的成本函数来构建问题。\n\n\n\nTrajOpt  Schulman J, Duan Y, Ho J, et al. Motion planning with sequential convex optimization and convex collision checking[J].  The International Journal of Robotics Research, 2014, 33(9): 1251-1270.\n\n\n这代表了现代运动规划的观点：它不再仅仅是一个搜索问题，而是一个整体的优化问题。这一趋势表明，随着机器人越来越多地在现实世界中承担复杂任务，运动的质量变得与运动的存在本身同等重要。这种转变要求规划器能够处理复杂的、通常是不可微的成本函数和约束。",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/00_intro.html#什么是任务与运动规划tamp",
+    "href": "notebooks/00_intro.html#什么是任务与运动规划tamp",
+    "title": "2  Introduction",
+    "section": "2.3 什么是任务与运动规划（TAMP）？",
+    "text": "2.3 什么是任务与运动规划（TAMP）？\n前面的小节讨论了如何从 A 点到 B 点找到一条“好”的路径。但一个更根本的问题是：机器人 为什么 要去 A 点或 B 点？它在这些点要 做什么？\n在经典的运动规划中，我们假设“任务”已经被给定（例如，“将物体从 X 移动到 Y”）。然而，在更复杂的场景中，机器人必须自己 推理 出需要执行哪些动作序列。例如，要“倒一杯水”，机器人必须首先找到杯子，然后移动到饮水机，按下按钮，最后再把水杯递过来。\n任务与运动规划（Task and Motion Planning, TAMP） 正是连接这两个层面的桥梁：它在一个统一的框架内，同时解决高层次的、离散的“任务逻辑”（Task Planning，做什么）和低层次的、连续的“运动实现”（Motion Planning，怎么做）。\nTAMP 的实现并非只有一种方式，其发展体现了机器人领域从“自动化”走向“智能化”的清晰脉络。\n\n2.3.1 针对特定任务的“硬编码”\n在传统的工业自动化中，TAMP 问题通常是被“规避”的。工程师会针对 特定 的任务类型（如抓取、码垛、焊接或打磨）编写高度专业化、逻辑僵硬的程序。这些程序本质上是一系列预先定义好的规则和状态机，它们在高度结构化、可预测的环境中运行良好。\n\n\n\n\n\n梅卡曼德 3D 相机无序抓取\n\n\n然而，这种方法的 局限性 非常明显。它依赖于工程师对 已知 任务的穷举编程。当机器人从工厂走向家庭、医院等非结构化环境时，任务的类型是无穷的。\n\n\n2.3.2 运动原语与行为树（混合方法）\n为了克服“硬编码”的僵硬性，同时又避免完全黑盒的复杂性，一种在工业界和研究中极为流行的混合方法应运而生：运动原语（Motion Primitives） 与 行为树（Behavior Trees） 的结合。 - 运动原语 (Motion Primitives)： 这不是去规划一个完整的、复杂轨迹，而是将复杂的动作分解为一系列“标准化的动作单元”。例如，“接近物体”、“线性移动”、“抓取”、“释放”等。这些原语本身是可以参数化的（比如“线性移动 10 厘米”），并且其内部的运动规划已经过充分优化和验证。 - 行为树 (Behavior Trees)： 行为树提供了一种强大的、模块化的方式来组织这些原语，以构建复杂的任务逻辑。它取代了传统有限状态机（FSM）难以维护和扩展的缺点。通过行为树，工程师可以用图形化的方式编排任务流程，定义动作的执行顺序、失败回退机制（Fallback）和并行操作。\n这种方法（例如在 MoveIt Pro 等现代机器人框架中广泛应用）的优势在于它提供了 “乐高积木式” 的灵活性。工程师不再需要从头编写每一个焊接或码垛程序，而是可以像搭积木一样，将可靠的“运动原语”通过“行为树”快速组合起来，以适应不同的任务需求。\n\n\n\n\n\nPicNic Moveit Pro\n\n\n尽管这种方法极大地提高了开发效率和系统的鲁棒性，但它仍然依赖于工程师对任务逻辑的 显式设计。\n\n\n2.3.3 基于学习的 TAMP\n当任务的复杂性呈指数级增长时——例如“叠被子”、“晾衣服”或“洗碗”——即便是行为树也难以手动编排。这些任务具有两个显著特点： - 长时序（Long-horizon）： 它们需要一系列复杂的、有逻辑依赖的步骤才能完成。 - 高度不确定性（High Uncertainty）： 任务的上下文和环境是动态变化的（例如，被子在床上的形态、碗在水槽中的位置）。\n这种从“编程逻辑”到“自主决策”的转变，是 TAMP 领域面临的核心挑战。如何让机器人自主 推理 出完成任务所需的动作序列（例如，要洗碗，必须 先拿起海绵，然后 挤上洗洁精），并为每一步自动生成可行且优化的运动轨迹？\n这正是当前机器人研究的前沿，也是 基于学习（Learning-based）的方法 被寄予厚望的领域。研究者们希望通过模仿学习（Imitation Learning）或强化学习（Reinforcement Learning）等技术，让机器人不再依赖僵硬的编程规则，而是能从数据中“学会”如何规划和执行这些复杂的长时序任务。\n\n\n\n\n\nPhysical Intelligence (π)  Real-Time Action Chunking with Large Models",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/01_kinematics.html",
+    "href": "notebooks/01_kinematics.html",
+    "title": "3  Kinematics",
+    "section": "",
+    "text": "3.1 什么是运动学？\n运动学是研究运动的几何学，它描述物体的位置、速度和加速度，而不考虑导致这些运动的力或质量。在机器人学中，运动学专注于机械臂的连杆和关节的几何关系。它包含了以下几个重要的概念：构型空间 (Configuration Space, C-Space)，正向运动学 (Forward Kinematics, FK)，逆运动学 (Inverse Kinematics, IK)",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Kinematics</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/01_kinematics.html#什么是运动学",
+    "href": "notebooks/01_kinematics.html#什么是运动学",
+    "title": "3  Kinematics",
+    "section": "",
+    "text": "构型空间 (Configuration Space, C-Space)： 构型空间（C-Space）是一个数学概念，代表了机器人所有可能状态的集合。对于一个由 n 个独立关节组成的机械臂，其构型可以用一个 n 维向量 \\(q = [q_1, q_2, ..., q_n]^T\\) 来描述，这个向量中的每一个元素代表一个关节的位置。这个 n 维向量空间就是该机械臂的构型空间。从可视化的角度来看，C-Space 的一个重要优势在于它能够将复杂的机器人系统抽象成一个点，从而将后续更具挑战性的问题（如运动规划）转化为在构型空间中的路径搜索问题，使得求解过程更加直观和高效。\n\n\n\n\n正向运动学 (Forward Kinematics, FK)： 正向运动学 (FK) 是指给定一组关节构型（关节角度或位移）\\(q \\in \\mathbb{R}^n\\)（其中 \\(n\\) 是机器人自由度），计算机器人末端执行器（End-Effector）在笛卡尔空间中的位姿（位置和姿态）\\(T \\in SE(3)\\) 的过程。这个映射函数是唯一且明确的：\\(T = f(q)\\)。\n\n\n\n\n逆运动学 (Inverse Kinematics, IK)： 逆运动学 (IK) 是 FK 的逆问题：给定末端执行器的期望位姿 \\(T\\)，求解所有能够达到该位姿的关节构型 \\(q\\)。即求解 \\(q = f^{-1}(T)\\)。与 FK 不同，IK 是一个极具挑战性的非线性问题，其核心挑战在于：\n\n解的存在性：并非所有期望位姿都是可达的（例如，超出机器人工作空间）。\n解的多样性：对于非冗余机器人，可能存在多个离散解（例如，“肘部向上”和”肘部向下”）。\n解的无穷性：对于冗余机器人（自由度 &gt; 6），通常存在无限个解，形成一个连续的解空间。",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Kinematics</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/01_kinematics.html#运动学的求解方法",
+    "href": "notebooks/01_kinematics.html#运动学的求解方法",
+    "title": "3  Kinematics",
+    "section": "3.2 运动学的求解方法",
+    "text": "3.2 运动学的求解方法\n\n3.2.1 正运动学\n\n3.2.1.1 Denavit-Hartenberg (DH) 参数法：\nDH 参数法是 20 世纪 50 年代提出的经典建模方法。它通过一套系统性的规则，在每个关节上建立一个坐标系。其核心思想是，从一个关节坐标系 \\(i-1\\) 到下一个坐标系 \\(i\\) 的变换 \\(T_{i-1}^i\\) 可以仅用 4 个参数来描述： - \\(a_{i-1}\\)：连杆长度 (link length) - \\(\\alpha_{i-1}\\)：连杆扭角 (link twist) - \\(d_i\\)：连杆偏移 (link offset) - \\(\\theta_i\\)：关节转角 (joint angle) 总的正向运动学就是这些变换矩阵的连乘： \\[T_{base}^{EE} = T_0^1(q_1) \\cdot T_1^2(q_2) \\cdots T_{n-1}^n(q_n)\\]\n\n\n\nUR5e DH table  Kebria P M, Al-Wais S, Abdi H, et al. Kinematic and dynamic modelling of UR5 manipulator[C]//2016 IEEE international conference on systems, man, and cybernetics (SMC). IEEE, 2016: 004229-004234.\n\n\n\n\n3.2.1.2 基于刚体变换链 (URDF)：\n基于 URDF 的方法放弃了 DH 的 4 参数最小化约束，转而追求建模的直观性和灵活性。它的核心思想是：为机器人的每一个”连杆”(Link) 都定义一个固定的、符合直觉的坐标系，“关节”(Joint) 被定义为连接”父连杆”和”子连杆”的运动。从父连杆 \\(i-1\\) 到子连杆 \\(i\\) 的变换 \\(T_{i-1}^i(q_i)\\) 由静态（固定）变换和动态（可变）变换组成。因此，总的正向运动学是一个由固定变换（连杆的几何结构）和可变变换（关节运动）交错组成的 \\(SE(3)\\) 矩阵链。这种方法已经是当前机器人学中的实事标准，ROS, mujoco, issac 等主流平台均采用了这种直观的方式进行正运动学计算 \\[T_{base}^{EE} = T_{base}^{L_1} \\cdot T_{L_1}^{J_1} \\cdot T_{J_1}(q_1) \\cdot T_{J_1}^{L_2} \\cdot T_{L_2}^{J_2} \\cdot T_{J_2}(q_2) \\cdots T_{J_{n-1}}^{L_n} \\cdot T_{L_n}^{EE}\\]\n\n\n\nhello-robot stretch-tutorials tf2 example\n\n\n\n\n3.2.1.3 指数积 (Product of Exponentials, PoE)：\nPoE 方法，也常与螺旋理论 (Screw Theory) 相关联，是现代机器人学教科书中推崇的方法。它提供了一个优美且不依赖于中间坐标系的表述方式。核心思想是：定义一个 零位形 \\(M\\)（即当所有 \\(q_i = 0\\) 时的末端执行器位姿）和关节”螺旋” (Twist) \\(\\mathcal{V}_i \\in se(3)\\)（每一个关节的运动可以被描述为一个 6 维的螺旋向量）。任意关节构型 \\(q\\) 下的位姿 \\(T(q)\\) 可以通过指数映射计算： \\[T(q) = e^{[\\mathcal{V}_1]q_1} \\cdot e^{[\\mathcal{V}_2]q_2} \\cdots e^{[\\mathcal{V}_n]q_n} \\cdot M\\] 其中 \\(e^{[\\mathcal{V}_i]q_i}\\) 是一个 \\(SE(3)\\) 矩阵，表示绕着螺旋轴 \\(\\mathcal{V}_i\\) 运动 \\(q_i\\) 的量。\n\n\n3.2.1.4 方法对比总结\n\n\n\n\n\n\n\n\n\n\n方法\n核心思想\n优点\n缺点\n主要应用\n\n\n\n\nDH 参数法\n4 参数最小化坐标系变换\n参数少，形式统一\n建模不直观，有奇异性\n传统机器人学分析\n\n\nURDF 变换链\n直观的刚体变换连乘\n直观，灵活，生态兼容\n参数冗余\n工程实现，仿真，ROS\n\n\n指数积 (PoE)\n关节螺旋与零位形\n理论优雅，几何直观\n学习门槛高\n现代机器人学理论，分析推导\n\n\n\n\n\n\n3.2.2 逆运动学",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Kinematics</span>"
+    ]
+  }
+]

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>2DOF 机器人与 C-Space</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        .plots-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 30px;
+        }
+
+        canvas {
+            border: 1px solid #333;
+            background-color: #fff;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            position: relative;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 12px;
+            color: #333;
+            font-family: Arial, sans-serif;
+        }
+
+        .axis-label-x {
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .axis-label-y {
+            left: -55px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            transform-origin: center;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 90%;
+            max-width: 800px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+
+        .slider-group {
+            display: grid;
+            grid-template-columns: 100px 1fr 50px;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-group label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .slider-group input {
+            flex-grow: 1;
+        }
+
+        .slider-group span {
+            min-width: 30px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        #loading {
+            color: #d9534f;
+            font-weight: bold;
+            display: none;
+            /* 初始隐藏 */
+        }
+
+        h3 {
+            margin: 0;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="plots-container">
+        <div class="container">
+            <h3>工作空间 (Workspace)</h3>
+            <div class="canvas-wrapper">
+                <canvas id="canvas_workspace" width="300" height="300"></canvas>
+                <div class="axis-label axis-label-x">X (m)</div>
+                <div class="axis-label axis-label-y">Y (m)</div>
+            </div>
+        </div>
+
+        <div class="container">
+            <h3>构型空间 (C-Space)</h3>
+            <div class="canvas-wrapper">
+                <canvas id="canvas_cspace" width="300" height="300"></canvas>
+                <div class="axis-label axis-label-x">θ1 (0° to 360°)</div>
+                <div class="axis-label axis-label-y">θ2 (0° to 360°)</div>
+            </div>
+            <div id="loading" style="display: none;">
+                ⏳ 正在生成 C-Space 图像 (300x300)...
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="slider-group">
+            <label for="slider_q1">Joint 1 (θ1):</label>
+            <input type="range" id="slider_q1" min="0" max="359" value="45">
+            <span id="label_q1">45°</span>
+        </div>
+        <div class="slider-group">
+            <label for="slider_q2">Joint 2 (θ2):</label>
+            <input type="range" id="slider_q2" min="0" max="359" value="45">
+            <span id="label_q2">45°</span>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. DOM 元素获取 ---
+        const wsCanvas = document.getElementById('canvas_workspace');
+        const wsCtx = wsCanvas.getContext('2d');
+        const csCanvas = document.getElementById('canvas_cspace');
+        const csCtx = csCanvas.getContext('2d');
+
+        const slider1 = document.getElementById('slider_q1');
+        const label1 = document.getElementById('label_q1');
+        const slider2 = document.getElementById('slider_q2');
+        const label2 = document.getElementById('label_q2');
+        const loadingMsg = document.getElementById('loading');
+
+        // --- 2. 常量定义 ---
+        const L1 = 1; // 连杆 1 长度 (m)
+        const L2 = 1; // 连杆 2 长度 (m)
+
+        // 地图范围 3x3 (m)
+        // 为了让机器人(最大臂展2m)能完整显示，我们将画布设置为 4.5m x 4.5m
+        // 这样机器人(0,0)在中心，画布显示范围从 (-2.25, -2.25) 到 (2.25, 2.25)
+        const MAP_SIZE = 4.5;
+        const WS_WIDTH = wsCanvas.width;
+        const WS_HEIGHT = wsCanvas.height;
+        const PIXELS_PER_METER = WS_WIDTH / MAP_SIZE; // 300 / 4.5 = 66.67
+        const ORIGIN_X = WS_WIDTH / 2; // 画布中心X
+        const ORIGIN_Y = WS_HEIGHT / 2; // 画布中心Y
+
+        // 确保两个画布大小相同
+        csCanvas.width = WS_WIDTH;
+        csCanvas.height = WS_HEIGHT;
+
+        const CS_WIDTH = csCanvas.width;
+        const CS_HEIGHT = csCanvas.height;
+
+        // 障碍物 (世界坐标, m)
+        const obstacles = [
+            { x: 0.8, y: 0.8, r: 0.4 },
+            { x: -1, y: 0.5, r: 0.3 },
+            { x: 0.5, y: -1.2, r: 0.5 },
+            { x: -0.2, y: 1.5, r: 0.2 }
+        ];
+
+        // 用于存储 C-Space 图像数据
+        let cSpaceImageData;
+
+        // --- 3. 辅助函数 ---
+
+        // 将世界坐标 (m) 转换为画布像素坐标
+        function worldToPixel(x, y) {
+            return {
+                x: ORIGIN_X + x * PIXELS_PER_METER,
+                y: ORIGIN_Y - y * PIXELS_PER_METER // Y轴在画布中是反转的
+            };
+        }
+
+        // 将世界尺寸 (m) 转换为像素尺寸
+        function worldToPixelSize(r) {
+            return r * PIXELS_PER_METER;
+        }
+
+        // 度数转弧度
+        function degToRad(deg) {
+            return deg * Math.PI / 180;
+        }
+
+        // --- 4. 运动学与碰撞检测 ---
+
+        /**
+         * 正向运动学
+         * @param {number} theta1 - 关节1角度 (radians)
+         * @param {number} theta2 - 关节2角度 (radians)
+         * @returns {Array} [p0, p1, p2] 关节的世界坐标
+         */
+        function forwardKinematics(theta1, theta2) {
+            const p0 = { x: 0, y: 0 }; // 基座
+            const p1 = {
+                x: L1 * Math.cos(theta1),
+                y: L1 * Math.sin(theta1)
+            };
+            const p2 = {
+                x: p1.x + L2 * Math.cos(theta1 + theta2),
+                y: p1.y + L2 * Math.sin(theta1 + theta2)
+            };
+            return [p0, p1, p2];
+        }
+
+        /**
+         * 检查线段 (pA, pB) 是否与圆形 (circle) 碰撞
+         * @param {object} pA - {x, y}
+         * @param {object} pB - {x, y}
+         * @param {object} circle - {x, y, r}
+         * @returns {boolean}
+         */
+        function isLinkColliding(pA, pB, circle) {
+            // 向量 AB 和 AC
+            const AB = { x: pB.x - pA.x, y: pB.y - pA.y };
+            const AC = { x: circle.x - pA.x, y: circle.y - pA.y };
+
+            // 将 AC 投影到 AB 上，得到 t
+            const magAB2 = AB.x ** 2 + AB.y ** 2;
+            let t = (AC.x * AB.x + AC.y * AB.y) / magAB2;
+
+            // 限制 t 在 [0, 1] 范围内，确保我们找到的是线段上的最近点
+            t = Math.max(0, Math.min(1, t));
+
+            // 计算线段上距离圆心最近的点
+            const closestPoint = {
+                x: pA.x + t * AB.x,
+                y: pA.y + t * AB.y
+            };
+
+            // 计算该最近点与圆心的距离
+            const dist = Math.sqrt((closestPoint.x - circle.x) ** 2 + (closestPoint.y - circle.y) ** 2);
+
+            // 如果距离小于半径，则发生碰撞
+            return dist < circle.r;
+        }
+
+        /**
+         * 检查特定构型是否发生碰撞
+         * @param {number} theta1 - 关节1角度 (radians)
+         * @param {number} theta2 - 关节2角度 (radians)
+         * @returns {boolean}
+         */
+        function checkCollision(theta1, theta2) {
+            const [p0, p1, p2] = forwardKinematics(theta1, theta2);
+
+            for (const obs of obstacles) {
+                // 检查连杆 1 (p0 -> p1)
+                if (isLinkColliding(p0, p1, obs)) return true;
+                // 检查连杆 2 (p1 -> p2)
+                if (isLinkColliding(p1, p2, obs)) return true;
+            }
+            return false;
+        }
+
+        // --- 5. C-Space 生成 (耗时操作) ---
+
+        function generateCSpace() {
+            console.log("Generating C-Space... (this may take a moment)");
+            loadingMsg.style.display = 'block';
+
+            const imageData = csCtx.createImageData(CS_WIDTH, CS_HEIGHT);
+            const data = imageData.data;
+
+            // 将像素坐标映射到角度 (0-360度)
+            const degPerPixel = 360 / CS_WIDTH;
+
+            // 遍历 C-Space 画布的每一个像素
+            for (let px = 0; px < CS_WIDTH; px++) {
+                for (let py = 0; py < CS_HEIGHT; py++) {
+                    // 将像素坐标转换为角度
+                    const q1_deg = px * degPerPixel;
+                    const q2_deg = py * degPerPixel;
+
+                    const t1_rad = degToRad(q1_deg);
+                    const t2_rad = degToRad(q2_deg);
+
+                    const inCollision = checkCollision(t1_rad, t2_rad);
+
+                    // 像素索引 (y * width + x) * 4
+                    const pixelIndex = (py * CS_WIDTH + px) * 4;
+
+                    if (inCollision) {
+                        // 碰撞：红色
+                        data[pixelIndex] = 255; // R
+                        data[pixelIndex + 1] = 80;  // G
+                        data[pixelIndex + 2] = 80;  // B
+                        data[pixelIndex + 3] = 255; // A
+                    } else {
+                        // 自由：白色
+                        data[pixelIndex] = 255; // R
+                        data[pixelIndex + 1] = 255; // G
+                        data[pixelIndex + 2] = 255; // B
+                        data[pixelIndex + 3] = 255; // A
+                    }
+                }
+            }
+
+            cSpaceImageData = imageData; // 存储结果
+            console.log("C-Space generated.");
+            loadingMsg.style.display = 'none';
+        }
+
+
+        // --- 6. 绘图函数 ---
+
+        function drawWorkspace(theta1, theta2) {
+            wsCtx.clearRect(0, 0, WS_WIDTH, WS_HEIGHT);
+
+            // 绘制网格
+            wsCtx.strokeStyle = "#e0e0e0";
+            wsCtx.lineWidth = 0.5;
+            const gridStep = 0.5; // 每0.5米一个网格
+
+            // 垂直网格线
+            for (let x = -MAP_SIZE / 2; x <= MAP_SIZE / 2; x += gridStep) {
+                const px = worldToPixel(x, 0).x;
+                wsCtx.beginPath();
+                wsCtx.moveTo(px, 0);
+                wsCtx.lineTo(px, WS_HEIGHT);
+                wsCtx.stroke();
+            }
+
+            // 水平网格线
+            for (let y = -MAP_SIZE / 2; y <= MAP_SIZE / 2; y += gridStep) {
+                const py = worldToPixel(0, y).y;
+                wsCtx.beginPath();
+                wsCtx.moveTo(0, py);
+                wsCtx.lineTo(WS_WIDTH, py);
+                wsCtx.stroke();
+            }
+
+            // 绘制坐标轴
+            wsCtx.strokeStyle = "#333";
+            wsCtx.lineWidth = 2;
+            wsCtx.beginPath();
+            // X轴
+            wsCtx.moveTo(ORIGIN_X, 0);
+            wsCtx.lineTo(ORIGIN_X, WS_HEIGHT);
+            // Y轴
+            wsCtx.moveTo(0, ORIGIN_Y);
+            wsCtx.lineTo(WS_WIDTH, ORIGIN_Y);
+            wsCtx.stroke();
+
+            // 绘制刻度
+            wsCtx.strokeStyle = "#333";
+            wsCtx.lineWidth = 1;
+            wsCtx.fillStyle = "#333";
+            wsCtx.font = "10px Arial";
+            wsCtx.textAlign = "center";
+            wsCtx.textBaseline = "top";
+
+            const tickStep = 1; // 每1米一个刻度
+            const tickLength = 5;
+
+            // X轴刻度（垂直方向）
+            for (let x = -Math.floor(MAP_SIZE / 2); x <= Math.floor(MAP_SIZE / 2); x += tickStep) {
+                if (x === 0) continue; // 跳过原点
+                const px = worldToPixel(x, 0).x;
+                wsCtx.beginPath();
+                wsCtx.moveTo(px, ORIGIN_Y - tickLength);
+                wsCtx.lineTo(px, ORIGIN_Y + tickLength);
+                wsCtx.stroke();
+                wsCtx.fillText(x.toFixed(1) + "m", px, ORIGIN_Y + tickLength + 2);
+            }
+
+            // Y轴刻度（水平方向）
+            wsCtx.textAlign = "right";
+            wsCtx.textBaseline = "middle";
+            for (let y = -Math.floor(MAP_SIZE / 2); y <= Math.floor(MAP_SIZE / 2); y += tickStep) {
+                if (y === 0) continue; // 跳过原点
+                const py = worldToPixel(0, y).y;
+                wsCtx.beginPath();
+                wsCtx.moveTo(ORIGIN_X - tickLength, py);
+                wsCtx.lineTo(ORIGIN_X + tickLength, py);
+                wsCtx.stroke();
+                wsCtx.fillText(y.toFixed(1) + "m", ORIGIN_X - tickLength - 5, py);
+            }
+
+            // 原点标记
+            wsCtx.fillStyle = "#333";
+            wsCtx.font = "10px Arial";
+            wsCtx.textAlign = "right";
+            wsCtx.textBaseline = "top";
+            wsCtx.fillText("(0,0)", ORIGIN_X - 5, ORIGIN_Y + 5);
+
+            // 轴标签现在使用 HTML 元素显示，不再在画布上绘制
+
+            // 绘制障碍物
+            wsCtx.fillStyle = "rgba(255, 100, 100, 0.7)";
+            wsCtx.strokeStyle = "rgba(200, 50, 50, 1)";
+            wsCtx.lineWidth = 2;
+            for (const obs of obstacles) {
+                const obsPx = worldToPixel(obs.x, obs.y);
+                const rPx = worldToPixelSize(obs.r);
+                wsCtx.beginPath();
+                wsCtx.arc(obsPx.x, obsPx.y, rPx, 0, 2 * Math.PI);
+                wsCtx.fill();
+                wsCtx.stroke();
+            }
+
+            // 获取机器人关节位置
+            const [p0, p1, p2] = forwardKinematics(theta1, theta2);
+            const p0_px = worldToPixel(p0.x, p0.y);
+            const p1_px = worldToPixel(p1.x, p1.y);
+            const p2_px = worldToPixel(p2.x, p2.y);
+
+            // 检查当前是否碰撞，用于改变颜色
+            const isColliding = checkCollision(theta1, theta2);
+
+            // 绘制连杆
+            wsCtx.strokeStyle = isColliding ? "#d9534f" : "#0275d8";
+            wsCtx.lineWidth = 6;
+
+            // Link 1
+            wsCtx.beginPath();
+            wsCtx.moveTo(p0_px.x, p0_px.y);
+            wsCtx.lineTo(p1_px.x, p1_px.y);
+            wsCtx.stroke();
+
+            // Link 2
+            wsCtx.beginPath();
+            wsCtx.moveTo(p1_px.x, p1_px.y);
+            wsCtx.lineTo(p2_px.x, p2_px.y);
+            wsCtx.stroke();
+
+            // 绘制关节
+            wsCtx.fillStyle = "#333";
+            wsCtx.beginPath(); wsCtx.arc(p0_px.x, p0_px.y, 8, 0, 2 * Math.PI); wsCtx.fill(); // 基座
+            wsCtx.fillStyle = "#555";
+            wsCtx.beginPath(); wsCtx.arc(p1_px.x, p1_px.y, 6, 0, 2 * Math.PI); wsCtx.fill(); // 肘部
+            wsCtx.fillStyle = "#555";
+            wsCtx.beginPath(); wsCtx.arc(p2_px.x, p2_px.y, 4, 0, 2 * Math.PI); wsCtx.fill(); // 末端
+        }
+
+        function drawCSpace(q1_deg, q2_deg) {
+            // 1. 绘制预先生成的 C-Space 图像
+            csCtx.putImageData(cSpaceImageData, 0, 0);
+
+            // 将角度映射到像素坐标
+            const pixelsPerDeg = CS_WIDTH / 360;
+
+            // 2. 绘制网格
+            csCtx.strokeStyle = "#d0d0d0";
+            csCtx.lineWidth = 0.5;
+            const gridStepDeg = 30; // 每30度一个网格
+
+            // 垂直网格线（θ1方向）
+            for (let deg = 0; deg <= 360; deg += gridStepDeg) {
+                const px = deg * pixelsPerDeg;
+                csCtx.beginPath();
+                csCtx.moveTo(px, 0);
+                csCtx.lineTo(px, CS_HEIGHT);
+                csCtx.stroke();
+            }
+
+            // 水平网格线（θ2方向）
+            for (let deg = 0; deg <= 360; deg += gridStepDeg) {
+                const py = deg * pixelsPerDeg;
+                csCtx.beginPath();
+                csCtx.moveTo(0, py);
+                csCtx.lineTo(CS_WIDTH, py);
+                csCtx.stroke();
+            }
+
+            // 3. 绘制坐标轴
+            csCtx.strokeStyle = "#333";
+            csCtx.lineWidth = 2;
+            csCtx.beginPath();
+            // X轴（θ1 = 0）
+            csCtx.moveTo(0, 0);
+            csCtx.lineTo(0, CS_HEIGHT);
+            // Y轴（θ2 = 0）
+            csCtx.moveTo(0, 0);
+            csCtx.lineTo(CS_WIDTH, 0);
+            csCtx.stroke();
+
+            // 4. 绘制刻度
+            csCtx.strokeStyle = "#333";
+            csCtx.lineWidth = 1;
+            csCtx.fillStyle = "#333";
+            csCtx.font = "9px Arial";
+            csCtx.textAlign = "center";
+            csCtx.textBaseline = "top";
+
+            const tickStepDeg = 60; // 每60度一个刻度
+            const tickLength = 5;
+
+            // X轴刻度（θ1方向，在底部边缘）
+            for (let deg = 0; deg <= 360; deg += tickStepDeg) {
+                const px = deg * pixelsPerDeg;
+                csCtx.beginPath();
+                csCtx.moveTo(px, CS_HEIGHT - tickLength);
+                csCtx.lineTo(px, CS_HEIGHT);
+                csCtx.stroke();
+                if (deg > 0 && deg < 360) {
+                    csCtx.fillText(deg + "°", px, CS_HEIGHT + 2);
+                }
+            }
+
+            // Y轴刻度（θ2方向，在左侧边缘）
+            csCtx.textAlign = "right";
+            csCtx.textBaseline = "middle";
+            for (let deg = 0; deg <= 360; deg += tickStepDeg) {
+                const py = deg * pixelsPerDeg;
+                csCtx.beginPath();
+                csCtx.moveTo(0, py);
+                csCtx.lineTo(0 + tickLength, py);
+                csCtx.stroke();
+                if (deg > 0 && deg < 360) {
+                    csCtx.fillText(deg + "°", 0 - 5, py);
+                }
+            }
+
+            // 原点标记
+            csCtx.fillStyle = "#333";
+            csCtx.font = "9px Arial";
+            csCtx.textAlign = "right";
+            csCtx.textBaseline = "top";
+            csCtx.fillText("(0°,0°)", 0 - 5, 0 + 5);
+
+            // 5. 轴标签现在使用 HTML 元素显示，不再在画布上绘制
+
+            // 6. 绘制当前构型点
+            csCtx.fillStyle = "#0275d8";
+            csCtx.strokeStyle = "white";
+            csCtx.lineWidth = 2;
+            csCtx.beginPath();
+            // 将角度转换为像素坐标
+            const px = q1_deg * pixelsPerDeg;
+            const py = q2_deg * pixelsPerDeg;
+            csCtx.arc(px, py, 5, 0, 2 * Math.PI);
+            csCtx.fill();
+            csCtx.stroke();
+        }
+
+        // --- 7. 主更新循环与事件监听 ---
+
+        function updateSimulation() {
+            // 1. 从滑块获取值 (degree)
+            const q1_deg = parseInt(slider1.value);
+            const q2_deg = parseInt(slider2.value);
+
+            // 2. 更新标签
+            label1.textContent = `${q1_deg}°`;
+            label2.textContent = `${q2_deg}°`;
+
+            // 3. 转换为弧度
+            const q1_rad = degToRad(q1_deg);
+            const q2_rad = degToRad(q2_deg);
+
+            // 4. 重新绘制
+            drawWorkspace(q1_rad, q2_rad);
+
+            // 确保 C-Space 图像已生成后再绘制点
+            if (cSpaceImageData) {
+                drawCSpace(q1_deg, q2_deg);
+            }
+        }
+
+        // --- 8. 初始化 ---
+        function init() {
+            // 附加事件监听
+            slider1.addEventListener('input', updateSimulation);
+            slider2.addEventListener('input', updateSimulation);
+
+            // 使用 setTimeout 异步生成 C-Space，这样页面可以先显示 "Loading"
+            setTimeout(() => {
+                generateCSpace();
+                // 生成后，执行第一次绘制
+                updateSimulation();
+            }, 10); // 延迟10ms执行，让UI先渲染
+        }
+
+        // 页面加载完毕后运行
+        window.addEventListener('load', init);
+
+    </script>
+</body>
+
+</html>

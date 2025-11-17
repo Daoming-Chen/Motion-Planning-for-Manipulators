@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dijkstra 可视化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" }
+    </style>
+    <!-- React + ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for in-browser JSX transform (simple, no build step) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
+
+      const GRID_SIZE = 20;
+      const CELL_SIZE = 30; // px
+
+      function DijkstraVisualizer() {
+        const [grid, setGrid] = useState([]);
+        const [start, setStart] = useState({ x: 2, y: 2 });
+        const [end, setEnd] = useState({ x: 17, y: 17 });
+        const [isRunning, setIsRunning] = useState(false);
+        const [visited, setVisited] = useState(new Set());
+        const [path, setPath] = useState([]);
+        const [distances, setDistances] = useState({});
+        const [mode, setMode] = useState('wall'); // 'wall' | 'start' | 'end'
+        const animationRef = useRef(null);
+
+        useEffect(() => {
+          const newGrid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+          // random obstacles (20%)
+          for (let i = 0; i < GRID_SIZE * GRID_SIZE * 0.2; i++) {
+            const x = Math.floor(Math.random() * GRID_SIZE);
+            const y = Math.floor(Math.random() * GRID_SIZE);
+            if ((x !== start.x || y !== start.y) && (x !== end.x || y !== end.y)) {
+              newGrid[y][x] = 1;
+            }
+          }
+          setGrid(newGrid);
+        }, []);
+
+        const resetVisualization = () => {
+          setIsRunning(false);
+          setVisited(new Set());
+          setPath([]);
+          setDistances({});
+          if (animationRef.current) {
+            clearTimeout(animationRef.current);
+            animationRef.current = null;
+          }
+        };
+
+        const getCellKey = (x, y) => `${x},${y}`;
+
+        const getNeighbors = (x, y) => {
+          const dirs = [ [0,1], [1,0], [0,-1], [-1,0] ];
+          const res = [];
+          for (const [dx, dy] of dirs) {
+            const nx = x + dx, ny = y + dy;
+            if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && grid[ny][nx] !== 1) {
+              res.push({ x: nx, y: ny });
+            }
+          }
+          return res;
+        };
+
+        const runDijkstra = (instant = false) => {
+          if (!grid.length) return;
+          setIsRunning(true);
+          setVisited(new Set());
+          setPath([]);
+
+          const dist = {};
+          const prev = {};
+          const pq = [];
+          const visitedSet = new Set();
+
+          for (let y = 0; y < GRID_SIZE; y++) {
+            for (let x = 0; x < GRID_SIZE; x++) {
+              dist[getCellKey(x, y)] = Infinity;
+            }
+          }
+          const startKey = getCellKey(start.x, start.y);
+          dist[startKey] = 0;
+          pq.push({ x: start.x, y: start.y, dist: 0 });
+
+          const step = () => {
+            if (pq.length === 0) { setIsRunning(false); return; }
+            pq.sort((a,b) => a.dist - b.dist);
+            const current = pq.shift();
+            const currentKey = getCellKey(current.x, current.y);
+
+            if (visitedSet.has(currentKey)) {
+              if (!instant) { animationRef.current = setTimeout(step, 0); } else { step(); }
+              return;
+            }
+
+            visitedSet.add(currentKey);
+            setVisited(new Set(visitedSet));
+            setDistances({ ...dist });
+
+            if (current.x === end.x && current.y === end.y) {
+              const pathArr = [];
+              let curr = currentKey;
+              while (curr) {
+                const [cx, cy] = curr.split(',').map(Number);
+                pathArr.unshift({ x: cx, y: cy });
+                curr = prev[curr];
+              }
+              setPath(pathArr);
+              setIsRunning(false);
+              return;
+            }
+
+            for (const nb of getNeighbors(current.x, current.y)) {
+              const nbKey = getCellKey(nb.x, nb.y);
+              if (!visitedSet.has(nbKey)) {
+                const newDist = dist[currentKey] + 1;
+                if (newDist < dist[nbKey]) {
+                  dist[nbKey] = newDist;
+                  prev[nbKey] = currentKey;
+                  pq.push({ x: nb.x, y: nb.y, dist: newDist });
+                }
+              }
+            }
+
+            if (!instant) { animationRef.current = setTimeout(step, 50); } else { step(); }
+          };
+
+          step();
+        };
+
+        const handleCellClick = (x, y) => {
+          if (isRunning) return;
+          if (mode === 'start') {
+            setStart({ x, y });
+            resetVisualization();
+          } else if (mode === 'end') {
+            setEnd({ x, y });
+            resetVisualization();
+          } else if (mode === 'wall') {
+            if ((x === start.x && y === start.y) || (x === end.x && y === end.y)) return;
+            const newGrid = grid.map(row => row.slice());
+            newGrid[y][x] = newGrid[y][x] === 1 ? 0 : 1;
+            setGrid(newGrid);
+            resetVisualization();
+          }
+        };
+
+        const isInPath = (x, y) => path.some(p => p.x === x && p.y === y);
+
+        // Avoid Tailwind dynamic classes by using inline background colors
+        const getCellStyle = (x, y) => {
+          const key = getCellKey(x, y);
+          // start/end/wall
+          if (x === start.x && y === start.y) return { backgroundColor: '#22c55e' }; // green-500
+          if (x === end.x && y === end.y) return { backgroundColor: '#ef4444' }; // red-500
+          if (grid[y] && grid[y][x] === 1) return { backgroundColor: '#1f2937' }; // gray-800
+          // path
+          if (isInPath(x, y)) return { backgroundColor: '#facc15' }; // yellow-400
+          // visited gradient (blue with varying alpha)
+          if (visited.has(key)) {
+            const d = distances[key] || 0;
+            const finite = Object.values(distances).filter(v => Number.isFinite(v));
+            const maxDist = finite.length ? Math.max(...finite) : 0;
+            const intensity = maxDist > 0 ? 1 - d / maxDist : 1; // 0..1
+            const alpha = 0.25 + 0.55 * intensity; // 0.25..0.8
+            return { backgroundColor: `rgba(59,130,246,${alpha.toFixed(3)})` }; // blue-500 base
+          }
+          // default
+          return { backgroundColor: '#f3f4f6' }; // gray-100
+        };
+
+        return (
+          <div className="flex flex-col items-center justify-center">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-4xl">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-800 mb-2 text-center">Dijkstra 算法可视化</h1>
+              <p className="text-gray-600 text-center mb-6">在 2D 栅格地图上寻找最短路径</p>
+
+              {/* Controls */}
+              <div className="flex flex-wrap gap-3 mb-6 justify-center">
+                <button
+                  onClick={() => runDijkstra(false)}
+                  disabled={isRunning}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  开始
+                </button>
+                <button
+                  onClick={() => runDijkstra(true)}
+                  disabled={isRunning}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  瞬间完成
+                </button>
+                <button
+                  onClick={resetVisualization}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  重置
+                </button>
+              </div>
+
+              {/* Modes */}
+              <div className="flex flex-wrap gap-3 mb-6 justify-center">
+                <button
+                  onClick={() => setMode('wall')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${mode === 'wall' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                >
+                  绘制墙壁
+                </button>
+                <button
+                  onClick={() => setMode('start')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${mode === 'start' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                >
+                  设置起点
+                </button>
+                <button
+                  onClick={() => setMode('end')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${mode === 'end' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                >
+                  设置终点
+                </button>
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap gap-4 mb-6 justify-center text-sm">
+                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded" style={{background:'#22c55e'}}></div><span>起点</span></div>
+                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded" style={{background:'#ef4444'}}></div><span>终点</span></div>
+                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded" style={{background:'#1f2937'}}></div><span>障碍物</span></div>
+                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded" style={{background:'rgba(59,130,246,0.6)'}}></div><span>已访问</span></div>
+                <div className="flex items-center gap-2"><div className="w-4 h-4 rounded" style={{background:'#facc15'}}></div><span>最短路径</span></div>
+              </div>
+
+              {/* Grid */}
+              <div className="inline-block border-4 border-gray-300 rounded-lg overflow-hidden shadow-lg">
+                {grid.map((row, y) => (
+                  <div key={y} className="flex">
+                    {row.map((cell, x) => (
+                      <div
+                        key={`${x}-${y}`}
+                        onClick={() => handleCellClick(x, y)}
+                        className="border border-gray-200 cursor-pointer transition-opacity duration-200 hover:opacity-80"
+                        style={{ width: CELL_SIZE, height: CELL_SIZE, ...getCellStyle(x, y) }}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Stats */}
+              <div className="mt-6 text-center text-gray-700">
+                <div className="flex gap-6 justify-center">
+                  <div><span className="font-semibold">已访问节点:</span> {visited.size}</div>
+                  <div><span className="font-semibold">路径长度:</span> {path.length > 0 ? path.length - 1 : '-'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<DijkstraVisualizer />);
+    </script>
+  </body>
+</html>

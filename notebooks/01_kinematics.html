@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.550">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Motion Planning for Manipulators - 3&nbsp; Kinematics</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../notebooks/00_intro.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../notebooks/01_kinematics.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Kinematics</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Motion Planning for Manipulators</a> 
+        <div class="sidebar-tools-main">
+    <a href="https://github.com/Daoming-Chen/Motion-Planning-for-Manipulators" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Cover</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notebooks/00_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Introduction</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notebooks/01_kinematics.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Kinematics</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#什么是运动学" id="toc-什么是运动学" class="nav-link active" data-scroll-target="#什么是运动学"><span class="header-section-number">3.1</span> 什么是运动学？</a></li>
+  <li><a href="#运动学的求解方法" id="toc-运动学的求解方法" class="nav-link" data-scroll-target="#运动学的求解方法"><span class="header-section-number">3.2</span> 运动学的求解方法</a>
+  <ul class="collapse">
+  <li><a href="#正运动学" id="toc-正运动学" class="nav-link" data-scroll-target="#正运动学"><span class="header-section-number">3.2.1</span> 正运动学</a></li>
+  <li><a href="#逆运动学" id="toc-逆运动学" class="nav-link" data-scroll-target="#逆运动学"><span class="header-section-number">3.2.2</span> 逆运动学</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.dev/Daoming-Chen/Motion-Planning-for-Manipulators/blob/main/notebooks/01_kinematics.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/Daoming-Chen/Motion-Planning-for-Manipulators/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Kinematics</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>运动学（Kinematics）是机器人操纵的几何基础，是连接高层任务规划与低层物理执行的关键桥梁。它描述了机器人的运动，而不考虑引起这些运动的力。本章将从运动学的基础概念出发，系统地探讨其理论、求解方法、优化策略，并最终揭示它在现代机器人核心挑战——任务与运动规划（TAMP）框架下的关键作用。</p>
+<section id="什么是运动学" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="什么是运动学"><span class="header-section-number">3.1</span> 什么是运动学？</h2>
+<p>运动学是研究运动的几何学，它描述物体的位置、速度和加速度，而不考虑导致这些运动的力或质量。在机器人学中，运动学专注于机械臂的连杆和关节的几何关系。它包含了以下几个重要的概念：<strong>构型空间</strong> (Configuration Space, C-Space)，<strong>正向运动学</strong> (Forward Kinematics, FK)，<strong>逆运动学</strong> (Inverse Kinematics, IK)</p>
+<ul>
+<li><strong>构型空间</strong> (Configuration Space, C-Space)： 构型空间（C-Space）是一个数学概念，代表了机器人所有可能状态的集合。对于一个由 <code>n</code> 个独立关节组成的机械臂，其构型可以用一个 <code>n</code> 维向量 <span class="math inline">\(q = [q_1, q_2, ..., q_n]^T\)</span> 来描述，这个向量中的每一个元素代表一个关节的位置。这个 <code>n</code> 维向量空间就是该机械臂的构型空间。从可视化的角度来看，C-Space 的一个重要优势在于它能够将复杂的机器人系统抽象成一个点，从而将后续更具挑战性的问题（如运动规划）转化为在构型空间中的路径搜索问题，使得求解过程更加直观和高效。</li>
+</ul>
+<iframe src="../web_demos/kinematics/c_space.html" title="configuration space 可视化" style="width: 100%; max-width: 1000px; height: 520px; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+                display: block; margin: 0 auto; background: white;">
+</iframe>
+<ul>
+<li><strong>正向运动学 (Forward Kinematics, FK)</strong>： 正向运动学 (FK) 是指给定一组关节构型（关节角度或位移）<span class="math inline">\(q \in \mathbb{R}^n\)</span>（其中 <span class="math inline">\(n\)</span> 是机器人自由度），计算机器人末端执行器（End-Effector）在笛卡尔空间中的位姿（位置和姿态）<span class="math inline">\(T \in SE(3)\)</span> 的过程。这个映射函数是唯一且明确的：<span class="math inline">\(T = f(q)\)</span>。</li>
+</ul>
+<iframe src="../web_demos/kinematics/fk/index.html" title="Forward Kinematics demo" style="width: 100%; max-width: 1200px; height: 520px; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+                display: block; margin: 0 auto; background: white;">
+</iframe>
+<ul>
+<li><strong>逆运动学 (Inverse Kinematics, IK)</strong>： 逆运动学 (IK) 是 FK 的逆问题：给定末端执行器的期望位姿 <span class="math inline">\(T\)</span>，求解所有能够达到该位姿的关节构型 <span class="math inline">\(q\)</span>。即求解 <span class="math inline">\(q = f^{-1}(T)\)</span>。与 FK 不同，IK 是一个极具挑战性的非线性问题，其核心挑战在于：
+<ul>
+<li>解的存在性：并非所有期望位姿都是可达的（例如，超出机器人工作空间）。</li>
+<li>解的多样性：对于非冗余机器人，可能存在多个离散解（例如，“肘部向上”和”肘部向下”）。</li>
+<li>解的无穷性：对于冗余机器人（自由度 &gt; 6），通常存在无限个解，形成一个连续的解空间。</li>
+</ul></li>
+</ul>
+<iframe src="../web_demos/kinematics/ik/index.html" title="Forward Kinematics demo" style="width: 100%; max-width: 1200px; height: 520px; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+                display: block; margin: 0 auto; background: white;">
+</iframe>
+</section>
+<section id="运动学的求解方法" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="运动学的求解方法"><span class="header-section-number">3.2</span> 运动学的求解方法</h2>
+<section id="正运动学" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="正运动学"><span class="header-section-number">3.2.1</span> 正运动学</h3>
+<section id="denavit-hartenberg-dh-参数法" class="level4" data-number="3.2.1.1">
+<h4 data-number="3.2.1.1" class="anchored" data-anchor-id="denavit-hartenberg-dh-参数法"><span class="header-section-number">3.2.1.1</span> Denavit-Hartenberg (DH) 参数法：</h4>
+<p>DH 参数法是 20 世纪 50 年代提出的经典建模方法。它通过一套系统性的规则，在每个关节上建立一个坐标系。其核心思想是，从一个关节坐标系 <span class="math inline">\(i-1\)</span> 到下一个坐标系 <span class="math inline">\(i\)</span> 的变换 <span class="math inline">\(T_{i-1}^i\)</span> 可以<strong>仅用 4 个参数</strong>来描述： - <span class="math inline">\(a_{i-1}\)</span>：连杆长度 (link length) - <span class="math inline">\(\alpha_{i-1}\)</span>：连杆扭角 (link twist) - <span class="math inline">\(d_i\)</span>：连杆偏移 (link offset) - <span class="math inline">\(\theta_i\)</span>：关节转角 (joint angle) 总的正向运动学就是这些变换矩阵的连乘： <span class="math display">\[T_{base}^{EE} = T_0^1(q_1) \cdot T_1^2(q_2) \cdots T_{n-1}^n(q_n)\]</span></p>
+<figure style="text-align: center; margin: 20px 0;" class="figure">
+<img src="https://daoming-chen.github.io/MP_lecture_assets/lec1/ur5e_dh.png" width="70%" style="display: block; margin: 0 auto;" class="figure-img">
+<figcaption style="font-size: 16px; color: #555; margin-top: 10px; font-weight:">
+UR5e DH table <br> Kebria P M, Al-Wais S, Abdi H, et al.&nbsp;Kinematic and dynamic modelling of UR5 manipulator[C]//2016 IEEE international conference on systems, man, and cybernetics (SMC). IEEE, 2016: 004229-004234.
+</figcaption>
+</figure>
+</section>
+<section id="基于刚体变换链-urdf" class="level4" data-number="3.2.1.2">
+<h4 data-number="3.2.1.2" class="anchored" data-anchor-id="基于刚体变换链-urdf"><span class="header-section-number">3.2.1.2</span> <strong>基于刚体变换链</strong> (URDF)：</h4>
+<p>基于 URDF 的方法放弃了 DH 的 4 参数最小化约束，转而追求<strong>建模的直观性和灵活性</strong>。它的核心思想是：为机器人的每一个”连杆”(Link) 都定义一个固定的、符合直觉的坐标系，“关节”(Joint) 被定义为连接”父连杆”和”子连杆”的运动。从父连杆 <span class="math inline">\(i-1\)</span> 到子连杆 <span class="math inline">\(i\)</span> 的变换 <span class="math inline">\(T_{i-1}^i(q_i)\)</span> 由<strong>静态（固定）变换</strong>和<strong>动态（可变）变换</strong>组成。因此，总的正向运动学是一个由固定变换（连杆的几何结构）和可变变换（关节运动）交错组成的 <span class="math inline">\(SE(3)\)</span> 矩阵链。这种方法已经是当前机器人学中的实事标准，ROS, mujoco, issac 等主流平台均采用了这种直观的方式进行正运动学计算 <span class="math display">\[T_{base}^{EE} = T_{base}^{L_1} \cdot T_{L_1}^{J_1} \cdot T_{J_1}(q_1) \cdot T_{J_1}^{L_2} \cdot T_{L_2}^{J_2} \cdot T_{J_2}(q_2) \cdots T_{J_{n-1}}^{L_n} \cdot T_{L_n}^{EE}\]</span></p>
+<figure style="text-align: center; margin: 20px 0;" class="figure">
+<img src="https://daoming-chen.github.io/MP_lecture_assets/lec1/tf2_broadcaster_with_stow.gif" width="70%" style="display: block; margin: 0 auto;" class="figure-img">
+<figcaption style="font-size: 16px; color: #555; margin-top: 10px; font-weight:">
+<a href="https://docs.hello-robot.com/0.2/stretch-tutorials/ros1/example_10/" target="_blank">hello-robot stretch-tutorials tf2 example</a>
+</figcaption>
+</figure>
+</section>
+<section id="指数积-product-of-exponentials-poe" class="level4" data-number="3.2.1.3">
+<h4 data-number="3.2.1.3" class="anchored" data-anchor-id="指数积-product-of-exponentials-poe"><span class="header-section-number">3.2.1.3</span> <strong>指数积</strong> (Product of Exponentials, PoE)：</h4>
+<p>PoE 方法，也常与<strong>螺旋理论 (Screw Theory)</strong> 相关联，是现代机器人学教科书中推崇的方法。它提供了一个优美且不依赖于中间坐标系的表述方式。核心思想是：定义一个 <strong>零位形</strong> <span class="math inline">\(M\)</span>（即当所有 <span class="math inline">\(q_i = 0\)</span> 时的末端执行器位姿）和<strong>关节”螺旋” (Twist)</strong> <span class="math inline">\(\mathcal{V}_i \in se(3)\)</span>（每一个关节的运动可以被描述为一个 6 维的螺旋向量）。任意关节构型 <span class="math inline">\(q\)</span> 下的位姿 <span class="math inline">\(T(q)\)</span> 可以通过指数映射计算： <span class="math display">\[T(q) = e^{[\mathcal{V}_1]q_1} \cdot e^{[\mathcal{V}_2]q_2} \cdots e^{[\mathcal{V}_n]q_n} \cdot M\]</span> 其中 <span class="math inline">\(e^{[\mathcal{V}_i]q_i}\)</span> 是一个 <span class="math inline">\(SE(3)\)</span> 矩阵，表示绕着螺旋轴 <span class="math inline">\(\mathcal{V}_i\)</span> 运动 <span class="math inline">\(q_i\)</span> 的量。</p>
+</section>
+<section id="方法对比总结" class="level4" data-number="3.2.1.4">
+<h4 data-number="3.2.1.4" class="anchored" data-anchor-id="方法对比总结"><span class="header-section-number">3.2.1.4</span> 方法对比总结</h4>
+<table class="table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">方法</th>
+<th style="text-align: left;">核心思想</th>
+<th style="text-align: left;">优点</th>
+<th style="text-align: left;">缺点</th>
+<th style="text-align: left;">主要应用</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>DH 参数法</strong></td>
+<td style="text-align: left;">4 参数最小化坐标系变换</td>
+<td style="text-align: left;">参数少，形式统一</td>
+<td style="text-align: left;">建模不直观，有奇异性</td>
+<td style="text-align: left;">传统机器人学分析</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>URDF 变换链</strong></td>
+<td style="text-align: left;">直观的刚体变换连乘</td>
+<td style="text-align: left;"><strong>直观，灵活，生态兼容</strong></td>
+<td style="text-align: left;">参数冗余</td>
+<td style="text-align: left;"><strong>工程实现，仿真，ROS</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>指数积 (PoE)</strong></td>
+<td style="text-align: left;">关节螺旋与零位形</td>
+<td style="text-align: left;"><strong>理论优雅，几何直观</strong></td>
+<td style="text-align: left;">学习门槛高</td>
+<td style="text-align: left;">现代机器人学理论，分析推导</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="逆运动学" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="逆运动学"><span class="header-section-number">3.2.2</span> 逆运动学</h3>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  const viewSource = window.document.getElementById('quarto-view-source') ||
+                     window.document.getElementById('quarto-code-tools-source');
+  if (viewSource) {
+    const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+    viewSource.addEventListener("click", function(e) {
+      if (sourceUrl) {
+        // rstudio viewer pane
+        if (/\bcapabilities=\b/.test(window.location)) {
+          window.open(sourceUrl);
+        } else {
+          window.location.href = sourceUrl;
+        }
+      } else {
+        const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+        modal.show();
+      }
+      return false;
+    });
+  }
+  function toggleCodeHandler(show) {
+    return function(e) {
+      const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+      for (let i=0; i<detailsSrc.length; i++) {
+        const details = detailsSrc[i].parentElement;
+        if (show) {
+          details.open = true;
+        } else {
+          details.removeAttribute("open");
+        }
+      }
+      const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+      const fromCls = show ? "hidden" : "unhidden";
+      const toCls = show ? "unhidden" : "hidden";
+      for (let i=0; i<cellCodeDivs.length; i++) {
+        const codeDiv = cellCodeDivs[i];
+        if (codeDiv.classList.contains(fromCls)) {
+          codeDiv.classList.remove(fromCls);
+          codeDiv.classList.add(toCls);
+        } 
+      }
+      return false;
+    }
+  }
+  const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+  if (hideAllCode) {
+    hideAllCode.addEventListener("click", toggleCodeHandler(false));
+  }
+  const showAllCode = window.document.getElementById("quarto-show-all-code");
+  if (showAllCode) {
+    showAllCode.addEventListener("click", toggleCodeHandler(true));
+  }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../notebooks/00_intro.html" class="pagination-link" aria-label="Introduction">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Introduction</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.dev/Daoming-Chen/Motion-Planning-for-Manipulators/blob/main/notebooks/01_kinematics.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/Daoming-Chen/Motion-Planning-for-Manipulators/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

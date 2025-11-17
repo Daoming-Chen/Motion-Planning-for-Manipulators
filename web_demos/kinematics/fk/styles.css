@@ -1,0 +1,8 @@
+/* FK-specific styles */
+/* Most styles are in shared/styles.css */
+
+/* Add any FK-specific overrides or additional styles here */
+#up-select {
+    width: 70px;
+    margin: 0 20px;
+}
